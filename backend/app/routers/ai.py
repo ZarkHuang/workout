@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -20,21 +21,59 @@ from app.routers.workouts import get_muscle_recovery_status
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
-def get_gemini_client():
-    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
+def generate_gemini_content(prompt: str) -> str:
+    api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
     if not api_key:
-        return None
+        raise ValueError("GEMINI_API_KEY is not configured")
+    
+    # Candidate models list matching Suzuki/Houseplanner
+    candidate_models = []
+    if settings.GEMINI_MODEL:
+        candidate_models.append(settings.GEMINI_MODEL.strip())
+    for m in ["gemini-3.1-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
+        if m not in candidate_models:
+            candidate_models.append(m)
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+
+    last_error_detail = ""
+    # 1. Direct REST call with httpx (matches Suzuki & Houseplanner)
+    for model_name in candidate_models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                res = client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and len(candidates) > 0:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and len(parts) > 0:
+                            return parts[0].get("text", "")
+                else:
+                    last_error_detail = f"Status {res.status_code}: {res.text}"
+        except Exception as e:
+            last_error_detail = str(e)
+            continue
+
+    # 2. SDK fallback
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=settings.GEMINI_MODEL or "gemini-2.5-flash",
-            generation_config={"temperature": 0.3}
-        )
-        return model
-    except Exception as e:
-        print(f"Error configuring Gemini: {e}")
-        return None
+        for m in candidate_models:
+            try:
+                gmodel = genai.GenerativeModel(model_name=m, generation_config={"temperature": 0.3})
+                resp = gmodel.generate_content(prompt)
+                if resp and resp.text:
+                    return resp.text
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    raise RuntimeError(f"Gemini generation failed: {last_error_detail}")
 
 def extract_json_from_text(text: str) -> dict:
     """Extract JSON object from text even if enclosed in markdown code blocks"""
@@ -68,10 +107,10 @@ def parse_diet_text(
     request: NaturalLanguageDietRequest,
     current_user: User = Depends(get_current_user)
 ):
-    model = get_gemini_client()
+    api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
     
     # Fallback heuristic if no API Key is provided
-    if not model:
+    if not api_key:
         return ParsedDietResponse(
             summary_name=request.text[:50],
             total_calories=450,
@@ -125,8 +164,8 @@ def parse_diet_text(
 """
 
     try:
-        response = model.generate_content(prompt)
-        parsed = extract_json_from_text(response.text)
+        raw_text = generate_gemini_content(prompt)
+        parsed = extract_json_from_text(raw_text)
         return ParsedDietResponse(
             summary_name=parsed.get("summary_name", request.text[:30]),
             total_calories=int(parsed.get("total_calories", 0)),
@@ -384,8 +423,8 @@ def recommend_workout(
     elif sub_focus_key in ["GLUTES", "HAMSTRINGS"]:
         sub_focus_desc = "【臀大肌與後鏈伸展 (RDL/臀推/腿彎舉)】"
 
-    model = get_gemini_client()
-    if not model:
+    api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
+    if not api_key:
         return AIRoutineRecommendResponse(
             routine_title=fallback_template["title"],
             target_split=fallback_template["target_split"],
@@ -444,8 +483,8 @@ def recommend_workout(
 """
 
     try:
-        response = model.generate_content(prompt)
-        parsed = extract_json_from_text(response.text)
+        raw_text = generate_gemini_content(prompt)
+        parsed = extract_json_from_text(raw_text)
         return AIRoutineRecommendResponse(
             routine_title=parsed.get("routine_title", fallback_template["title"]),
             target_split=parsed.get("target_split", target_focus),
@@ -482,8 +521,8 @@ def ai_coach_chat(
     target_cals = profile.target_calories if profile else 2400
     target_p = profile.target_protein_g if profile else 140.0
 
-    model = get_gemini_client()
-    if not model:
+    api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
+    if not api_key:
         return AIChatResponse(
             reply="您好！我是 FitPulse 智慧隨身教練。請在後端設定 `GEMINI_API_KEY` 以啟動強大的 Gemini AI 智能對話與即時菜單生成功能！",
             suggested_routine=None
@@ -533,8 +572,7 @@ def ai_coach_chat(
 """
 
     try:
-        response = model.generate_content(system_context)
-        reply_text = response.text
+        reply_text = generate_gemini_content(system_context)
 
         # Check if there is an embedded JSON routine in the response
         suggested_routine = None
