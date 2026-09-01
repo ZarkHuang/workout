@@ -12,7 +12,9 @@ class AIRoutineExerciseItem(BaseModel):
 class AIRoutineRecommendRequest(BaseModel):
     duration_minutes: Optional[int] = 60
     available_equipment: Optional[str] = "GYM" # GYM, DUMBBELLS_ONLY, HOME_BODYWEIGHT
-    focus_preference: Optional[str] = None # e.g. "CHEST", "LEGS", "AUTO"
+    focus_preference: Optional[str] = None # e.g. "CHEST", "BACK", "SHOULDERS", "LEGS", "PUSH", "PULL", "CARDIO", "AUTO"
+    sub_focus: Optional[str] = None # e.g. "WIDTH" (闊背寬度), "THICKNESS" (上背厚度), "UPPER_CHEST", "LATERAL", "QUADS", "GLUTES"
+    custom_notes: Optional[str] = None # e.g. "想要針對闊背多一點", "少用槓鈴"
     special_conditions: Optional[str] = None # e.g. "下背微痠", "時間緊迫"
 
 class AIRoutineRecommendResponse(BaseModel):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, func
 from typing import List, Optional
 from app.core.database import get_db
 from app.models.user import User
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/exercises", tags=["exercises"])
 
 @router.get("", response_model=List[ExerciseOut])
 def list_exercises(
-    muscle_group: Optional[str] = Query(None, description="CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE"),
+    muscle_group: Optional[str] = Query(None, description="CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE, CARDIO"),
     equipment: Optional[str] = None,
     q: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -80,7 +80,24 @@ def get_previous_set_hint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Find the most recent session containing this exercise for this user
+    # 1. Query all-time PR for this exercise for this user
+    pr_stats = (
+        db.query(
+            func.max(WorkoutSet.weight_kg),
+            func.max(WorkoutSet.estimated_1rm)
+        )
+        .join(WorkoutSession, WorkoutSet.session_id == WorkoutSession.id)
+        .filter(
+            WorkoutSession.user_id == current_user.id,
+            WorkoutSet.exercise_id == exercise_id,
+            WorkoutSet.is_completed == True
+        )
+        .first()
+    )
+    pr_max_weight = float(pr_stats[0] or 0.0) if pr_stats else 0.0
+    pr_max_1rm = float(pr_stats[1] or 0.0) if pr_stats else 0.0
+
+    # 2. Find the most recent set from the last completed session
     recent_set = (
         db.query(WorkoutSet)
         .join(WorkoutSession, WorkoutSet.session_id == WorkoutSession.id)
@@ -99,7 +116,9 @@ def get_previous_set_hint(
             "last_weight_kg": 0.0,
             "last_reps": 0,
             "last_estimated_1rm": 0.0,
-            "suggestion": "初次記錄此動作，建議從輕重量熱身組開始抓感覺！"
+            "pr_max_weight_kg": 0.0,
+            "pr_max_1rm": 0.0,
+            "suggestion": "初次記錄此動作，建議從輕重量熱身組開始抓感受度！"
         }
 
     last_weight = recent_set.weight_kg
@@ -116,5 +135,7 @@ def get_previous_set_hint(
         "last_weight_kg": last_weight,
         "last_reps": last_reps,
         "last_estimated_1rm": last_1rm,
+        "pr_max_weight_kg": pr_max_weight,
+        "pr_max_1rm": pr_max_1rm,
         "suggestion": suggestion
     }

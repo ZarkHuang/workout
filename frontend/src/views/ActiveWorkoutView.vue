@@ -1,33 +1,66 @@
 <template>
-  <div class="pb-32 pt-4 px-4 max-w-lg mx-auto space-y-4">
-    <!-- Active Workout Header Banner -->
-    <div class="card-apple bg-gradient-to-r from-slate-900 to-slate-800 text-white border-0 shadow-lg p-4">
-      <div class="flex items-center justify-between mb-2">
+  <div class="pb-36 pt-4 px-4 max-w-lg mx-auto space-y-4">
+    <!-- Header: Quick Mode / Session Info -->
+    <div class="card-apple bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-0 shadow-xl p-4.5 space-y-3">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <Flame class="w-5 h-5 text-emerald-400 animate-pulse" />
-          <span class="text-xs font-bold text-slate-300">實戰訓練中</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="text-xs font-mono font-bold bg-white/10 px-2.5 py-1 rounded-lg text-emerald-400">
-            ⏱️ {{ formattedDuration }}
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black">
+            <ClipboardList class="w-4 h-4" />
           </div>
+          <div>
+            <h1 class="text-base font-black text-white">訓練打卡與數據記錄</h1>
+            <p class="text-[11px] text-slate-400">組間隨手記 · 練完事後補填 · 自動試算 1RM/PR</p>
+          </div>
+        </div>
+        <button
+          @click="handleCancelWorkout"
+          class="text-xs text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+          title="清空並離開"
+        >
+          <X class="w-5 h-5" />
+        </button>
+      </div>
+
+      <!-- Quick Session Controls -->
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/60">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">📅 訓練日期</label>
+          <input
+            v-model="workoutStore.sessionDate"
+            type="date"
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">⏱️ 總時長 (分鐘)</label>
+          <input
+            v-model.number="workoutStore.durationMinutes"
+            type="number"
+            min="5"
+            step="5"
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500"
+          />
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
-        <h1 class="text-lg font-black text-white truncate mr-2">{{ workoutStore.sessionName }}</h1>
-        <div class="text-right flex-shrink-0">
-          <div class="text-[10px] text-slate-400">當前累積總容量</div>
-          <div class="text-sm font-black text-emerald-400">{{ currentTotalVolume }} kg</div>
+      <!-- Summary Stats Bar -->
+      <div class="flex items-center justify-between pt-1 text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400">累積總容量:</span>
+          <span class="font-black text-emerald-400">{{ currentTotalVolume }} kg</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400">已記錄動作:</span>
+          <span class="font-bold text-white">{{ workoutStore.activeExercises.length }} 項</span>
         </div>
       </div>
     </div>
 
     <!-- Empty State if no exercises added -->
     <div v-if="workoutStore.activeExercises.length === 0" class="card-apple text-center py-10 space-y-3">
-      <Dumbbell class="w-10 h-10 text-slate-300 mx-auto" />
+      <Dumbbell class="w-12 h-12 text-slate-300 mx-auto" />
       <div class="text-sm font-bold text-slate-800">尚未加入任何訓練動作</div>
-      <p class="text-xs text-slate-400">點擊下方按鈕從 40+ 黃金動作庫挑選動作！</p>
+      <p class="text-xs text-slate-400">點擊下方按鈕，挑選今天練習的動作並填寫重量與次數！</p>
       <button
         @click="showAddExerciseModal = true"
         class="py-2.5 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs shadow-sm active:scale-95 transition-all"
@@ -41,40 +74,95 @@
       <div
         v-for="(ex, exIdx) in workoutStore.activeExercises"
         :key="ex.exercise_id"
-        class="card-apple space-y-3"
+        class="card-apple space-y-3 relative overflow-hidden"
       >
-        <!-- Exercise Header -->
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 font-black text-xs flex items-center justify-center">
-              {{ exIdx + 1 }}
-            </span>
-            <div>
+        <!-- Exercise Header & Per-Exercise Stopwatch -->
+        <div class="flex items-start justify-between pb-2 border-b border-slate-100">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center">
+                {{ exIdx + 1 }}
+              </span>
               <h3 class="text-sm font-black text-slate-900">{{ ex.name }}</h3>
-              <div class="text-[10px] text-slate-400">{{ ex.target_muscle_group }}</div>
+              <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
+            </div>
+
+            <!-- Single Exercise Stopwatch Controls -->
+            <div class="flex items-center gap-2 mt-2">
+              <button
+                @click="workoutStore.toggleExerciseTimer(exIdx)"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
+                :class="ex.timerStatus === 'RUNNING' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+              >
+                <component :is="ex.timerStatus === 'RUNNING' ? Pause : Play" class="w-3.5 h-3.5" />
+                <span>{{ ex.timerStatus === 'RUNNING' ? '暫停計時' : (ex.elapsedSeconds > 0 ? '繼續計時' : '單項計時') }}</span>
+              </button>
+              <span v-if="ex.elapsedSeconds > 0" class="text-xs font-mono font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
+                ⏱️ {{ formatSeconds(ex.elapsedSeconds) }}
+              </span>
+              <button
+                v-if="ex.elapsedSeconds > 0"
+                @click="workoutStore.resetExerciseTimer(exIdx)"
+                class="text-[10px] text-slate-400 hover:text-slate-600 underline"
+              >
+                重設
+              </button>
             </div>
           </div>
+
           <button
             @click="workoutStore.removeExercise(exIdx)"
             class="text-slate-300 hover:text-rose-500 p-1"
+            title="移除此動作"
           >
             <Trash2 class="w-4 h-4" />
           </button>
         </div>
 
-        <!-- Previous Set Performance Hint -->
-        <div v-if="previousHints[ex.exercise_id]" class="text-[11px] p-2 bg-slate-50 rounded-xl text-slate-600 flex items-start gap-1.5 border border-slate-100">
-          <Lightbulb class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <span>{{ previousHints[ex.exercise_id].suggestion }}</span>
+        <!-- PR Banner & Progressive Overload Hint -->
+        <div v-if="previousHints[ex.exercise_id]" class="space-y-1.5">
+          <!-- PR Stats Box -->
+          <div class="grid grid-cols-2 gap-2 p-2 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-950 text-xs">
+            <div class="flex items-center gap-1.5">
+              <Trophy class="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <div>
+                <div class="text-[10px] text-amber-700/80 font-bold">歷史最大負重 PR</div>
+                <div class="font-black text-amber-900">
+                  {{ previousHints[ex.exercise_id].pr_max_weight_kg > 0 ? `${previousHints[ex.exercise_id].pr_max_weight_kg} kg` : '尚無紀錄' }}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <Crown class="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <div>
+                <div class="text-[10px] text-amber-700/80 font-bold">最佳預估 1RM</div>
+                <div class="font-black text-amber-900">
+                  {{ previousHints[ex.exercise_id].pr_max_1rm > 0 ? `${previousHints[ex.exercise_id].pr_max_1rm} kg` : '尚無紀錄' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggestion -->
+          <div class="text-[11px] p-2 bg-slate-50 rounded-xl text-slate-600 flex items-start gap-1.5 border border-slate-100">
+            <Lightbulb class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div class="leading-relaxed">
+              <span v-if="previousHints[ex.exercise_id].last_weight_kg > 0" class="font-bold text-slate-700">
+                上次做功：{{ previousHints[ex.exercise_id].last_weight_kg }}kg × {{ previousHints[ex.exercise_id].last_reps }}次
+                ·
+              </span>
+              <span>{{ previousHints[ex.exercise_id].suggestion }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Table Header -->
-        <div class="grid grid-cols-12 gap-1.5 text-center text-[10px] font-bold text-slate-400">
+        <div class="grid grid-cols-12 gap-1.5 text-center text-[10px] font-bold text-slate-400 pt-1">
           <span class="col-span-2">組別</span>
           <span class="col-span-3">重量 (kg)</span>
           <span class="col-span-3">次數 (reps)</span>
-          <span class="col-span-2">RPE</span>
-          <span class="col-span-2">完成</span>
+          <span class="col-span-2">預估 1RM</span>
+          <span class="col-span-2">打卡</span>
         </div>
 
         <!-- Sets Rows -->
@@ -118,17 +206,17 @@
               />
             </div>
 
-            <!-- RPE input -->
-            <div class="col-span-2">
-              <input
-                v-model.number="set.rpe"
-                type="number"
-                step="0.5"
-                min="6"
-                max="10"
-                class="w-full text-center py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:border-brand-500"
-                placeholder="RPE"
-              />
+            <!-- 1RM live display & PR Badge -->
+            <div class="col-span-2 text-center">
+              <div class="text-[11px] font-black text-slate-700">
+                {{ calculate1RM(set.weight_kg, set.reps) }}
+              </div>
+              <div
+                v-if="isNewPR(ex.exercise_id, set.weight_kg, set.reps)"
+                class="text-[9px] font-black text-amber-600 bg-amber-100 px-1 py-0.2 rounded-full animate-bounce"
+              >
+                🔥 PR!
+              </div>
             </div>
 
             <!-- Complete checkmark button -->
@@ -150,7 +238,7 @@
           class="w-full py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs border border-dashed border-slate-300 flex items-center justify-center gap-1 active:scale-95 transition-all"
         >
           <Plus class="w-3.5 h-3.5" />
-          <span>增加一組 (Set {{ ex.sets.length + 1 }})</span>
+          <span>增加一組 (第 {{ ex.sets.length + 1 }} 組)</span>
         </button>
       </div>
 
@@ -164,22 +252,22 @@
       </button>
     </div>
 
-    <!-- Bottom Fixed Actions -->
+    <!-- Bottom Fixed Actions: Clean & Easy Save -->
     <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200/80 z-30 max-w-lg mx-auto">
       <div class="flex items-center gap-2">
         <button
           @click="handleFinishWorkout"
           :disabled="submitting"
-          class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-600 hover:to-emerald-700 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+          class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-600 hover:to-emerald-700 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
-          <CheckCircle2 class="w-4 h-4" />
-          <span>{{ submitting ? '正在儲存日誌...' : '🎉 結束並儲存訓練' }}</span>
+          <Save class="w-4 h-4" />
+          <span>{{ submitting ? '正在儲存日誌...' : '💾 儲存今日訓練紀錄' }}</span>
         </button>
         <button
           @click="handleCancelWorkout"
-          class="py-3 px-4 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs active:scale-95 transition-all"
+          class="py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs active:scale-95 transition-all"
         >
-          放棄
+          取消離開
         </button>
       </div>
     </div>
@@ -200,7 +288,7 @@
         <input
           v-model="exerciseSearch"
           type="text"
-          placeholder="搜尋動作（如：臥推、深蹲）..."
+          placeholder="搜尋動作（如：臥推、深蹲、划船）..."
           class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
         />
 
@@ -228,7 +316,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import confetti from 'canvas-confetti'
 import {
-  Flame, Dumbbell, Trash2, Lightbulb, Plus, X, Check, CheckCircle2
+  ClipboardList, Dumbbell, Trash2, Lightbulb, Plus, X, Check, Save, Trophy, Crown, Play, Pause
 } from 'lucide-vue-next'
 import { useWorkoutStore } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
@@ -242,20 +330,39 @@ const exerciseSearch = ref('')
 const previousHints = ref({})
 const submitting = ref(false)
 
-const durationSeconds = ref(0)
-let durationTimer = null
+let exerciseTimerInterval = null
 
-const formattedDuration = computed(() => {
-  const m = Math.floor(durationSeconds.value / 60)
-  const s = durationSeconds.value % 60
+// Calculate Live Epley 1RM: weight * (1 + reps / 30)
+function calculate1RM(weight, reps) {
+  const w = Number(weight) || 0
+  const r = Number(reps) || 0
+  if (w <= 0 || r <= 0) return '-'
+  const est = Math.round(w * (1 + r / 30.0) * 10) / 10
+  return `${est} kg`
+}
+
+// Check if current set breaks personal record
+function isNewPR(exerciseId, weight, reps) {
+  const w = Number(weight) || 0
+  const r = Number(reps) || 0
+  if (w <= 0 || r <= 0) return false
+  const hint = previousHints.value[exerciseId]
+  if (!hint || !hint.pr_max_1rm) return false
+  const current1rm = w * (1 + r / 30.0)
+  return current1rm > hint.pr_max_1rm + 0.5
+}
+
+function formatSeconds(secs) {
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-})
+}
 
 const currentTotalVolume = computed(() => {
   let vol = 0
   workoutStore.activeExercises.forEach(ex => {
     ex.sets.forEach(s => {
-      if (s.is_completed) {
+      if (s.is_completed || s.weight_kg > 0) {
         vol += (Number(s.weight_kg) || 0) * (Number(s.reps) || 0)
       }
     })
@@ -273,7 +380,6 @@ async function fetchExerciseLibrary() {
   try {
     const res = await exercisesAPI.list()
     exerciseLibrary.value = res.data
-    // Fetch previous set hints for active exercises
     for (const ex of workoutStore.activeExercises) {
       loadHint(ex.exercise_id)
     }
@@ -298,34 +404,40 @@ function selectExerciseToAdd(ex) {
 }
 
 async function handleFinishWorkout() {
-  const completedSetsCount = workoutStore.activeExercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.is_completed).length, 0)
-  if (completedSetsCount === 0) {
-    alert('請至少完成並勾選 1 組動作！')
+  const hasData = workoutStore.activeExercises.some(ex => ex.sets.some(s => s.weight_kg > 0 || s.reps > 0 || s.is_completed))
+  if (!hasData) {
+    alert('請至少填寫 1 組動作的重量或次數！')
     return
   }
 
   submitting.value = true
   try {
-    await workoutStore.finishWorkout()
+    await workoutStore.finishWorkout(workoutStore.durationMinutes, workoutStore.sessionDate)
     
     // Confetti celebration!
     confetti({
-      particleCount: 100,
+      particleCount: 90,
       spread: 70,
       origin: { y: 0.6 }
     })
 
-    alert('🎉 恭喜完成今日訓練！已紀錄至歷史日誌並更新肌肉修復時鐘。')
+    alert('🎉 儲存成功！已寫入訓練日誌並同步更新肌肉修復狀態。')
     router.push('/')
   } catch (err) {
-    alert('儲存失敗，請稍後再試')
+    alert(err.message || '儲存失敗，請稍後再試')
   } finally {
     submitting.value = false
   }
 }
 
 function handleCancelWorkout() {
-  if (confirm('確定要放棄當前訓練嗎？所有已填寫資料將被清除。')) {
+  if (workoutStore.activeExercises.length === 0) {
+    workoutStore.cancelWorkout()
+    router.push('/workout')
+    return
+  }
+
+  if (confirm('確定要離開嗎？未儲存的輸入內容將會被清空。')) {
     workoutStore.cancelWorkout()
     router.push('/workout')
   }
@@ -333,23 +445,22 @@ function handleCancelWorkout() {
 
 onMounted(() => {
   if (!workoutStore.isWorkoutActive) {
-    workoutStore.startWorkout('今日自由訓練')
+    workoutStore.startWorkout('今日自訂訓練')
   }
 
   fetchExerciseLibrary()
 
-  // Calculate elapsed time from start
-  if (workoutStore.startTime) {
-    const elapsed = Math.floor((new Date() - new Date(workoutStore.startTime)) / 1000)
-    durationSeconds.value = Math.max(0, elapsed)
-  }
-
-  durationTimer = setInterval(() => {
-    durationSeconds.value++
+  // Per-exercise stopwatch ticker
+  exerciseTimerInterval = setInterval(() => {
+    workoutStore.activeExercises.forEach(ex => {
+      if (ex.timerStatus === 'RUNNING') {
+        ex.elapsedSeconds = (ex.elapsedSeconds || 0) + 1
+      }
+    })
   }, 1000)
 })
 
 onUnmounted(() => {
-  clearInterval(durationTimer)
+  clearInterval(exerciseTimerInterval)
 })
 </script>

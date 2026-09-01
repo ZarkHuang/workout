@@ -17,24 +17,37 @@
       </div>
     </div>
 
-    <!-- 2. Ongoing Workout Alert Banner (if active) -->
+    <!-- 2. Ongoing Workout Draft Alert Banner (if active) -->
     <div
-      v-if="workoutStore.isWorkoutActive"
-      @click="$router.push('/active-workout')"
-      class="p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-float cursor-pointer flex items-center justify-between active:scale-[0.98] transition-all"
+      v-if="workoutStore.activeExercises.length > 0"
+      class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-float flex items-center justify-between transition-all"
     >
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-          <Flame class="w-6 h-6 text-white animate-bounce" />
+      <div
+        @click="$router.push('/active-workout')"
+        class="flex items-center gap-3 cursor-pointer flex-1"
+      >
+        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+          <Flame class="w-5 h-5 text-white" />
         </div>
         <div>
-          <div class="text-xs font-medium text-emerald-100">當前正在進行</div>
-          <div class="text-base font-bold">{{ workoutStore.sessionName }}</div>
+          <div class="text-[11px] font-medium text-emerald-100">訓練日誌草稿 ({{ workoutStore.activeExercises.length }} 個動作)</div>
+          <div class="text-sm font-bold">{{ workoutStore.sessionName }}</div>
         </div>
       </div>
-      <div class="flex items-center gap-1 text-xs font-bold bg-white/20 px-3 py-1.5 rounded-xl">
-        <span>繼續打卡</span>
-        <ChevronRight class="w-4 h-4" />
+      <div class="flex items-center gap-1.5">
+        <button
+          @click="$router.push('/active-workout')"
+          class="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl"
+        >
+          繼續填寫
+        </button>
+        <button
+          @click.stop="workoutStore.cancelWorkout()"
+          class="p-1.5 rounded-lg bg-white/10 hover:bg-rose-500 text-white transition-colors"
+          title="清空草稿"
+        >
+          <X class="w-4 h-4" />
+        </button>
       </div>
     </div>
 
@@ -58,15 +71,47 @@
       </p>
 
       <!-- Split selector pills -->
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-3.5 scrollbar-none">
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
         <button
           v-for="s in splitOptions"
           :key="s.key"
-          @click="selectedSplit = s.key"
+          @click="selectSplit(s.key)"
           class="text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all"
           :class="selectedSplit === s.key ? 'bg-white text-emerald-900 shadow-sm' : 'bg-white/15 text-emerald-100 hover:bg-white/25'"
         >
           {{ s.label }}
+        </button>
+      </div>
+
+      <!-- Sub-Focus pills (e.g. Lat Width vs Back Thickness) -->
+      <div v-if="currentSubFocusList.length > 0" class="pt-2 pb-1 border-t border-white/15 space-y-1">
+        <div class="text-[10px] font-bold text-emerald-200">🎯 細部維度客製（點選偏好）：</div>
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            v-for="sf in currentSubFocusList"
+            :key="sf.key"
+            @click="selectedSubFocus = sf.key"
+            class="text-[10px] font-bold px-2 py-0.8 rounded-md whitespace-nowrap transition-all"
+            :class="selectedSubFocus === sf.key ? 'bg-emerald-300 text-emerald-950 shadow-sm' : 'bg-white/10 text-emerald-100 hover:bg-white/20'"
+          >
+            {{ sf.label }}
+          </button>
+        </div>
+      <!-- Custom Note / Wish input -->
+      <div class="pt-1.5 mb-3.5 relative">
+        <input
+          v-model="customNotes"
+          type="text"
+          placeholder="💬 客製偏好（例如：想多做啞鈴、加入引體向上）..."
+          class="w-full bg-black/20 placeholder-emerald-200/60 border border-white/20 rounded-xl pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:bg-black/30 focus:border-white/40"
+        />
+        <button
+          v-if="customNotes"
+          @click="customNotes = ''"
+          class="absolute right-2.5 top-3 text-emerald-200/70 hover:text-white"
+          title="清空文字"
+        >
+          <X class="w-3.5 h-3.5" />
         </button>
       </div>
 
@@ -77,14 +122,14 @@
           class="flex-1 py-2.5 px-4 rounded-xl bg-white text-emerald-800 text-xs font-extrabold shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5"
         >
           <Sparkles class="w-4 h-4 text-emerald-600" :class="{ 'animate-spin': loadingAI }" />
-          <span>{{ loadingAI ? 'AI 正在規劃分化課表...' : '✨ 一鍵推薦今日分化課表' }}</span>
+          <span>{{ loadingAI ? 'AI 正在規劃客製課表...' : '✨ 一鍵推薦今日客製課表' }}</span>
         </button>
         <button
           @click="startEmptyWorkout"
           class="py-2.5 px-3 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
         >
           <Play class="w-3.5 h-3.5" />
-          <span>自由練</span>
+          <span>自由記訓練</span>
         </button>
       </div>
     </div>
@@ -181,7 +226,7 @@
         </div>
 
         <!-- Split switcher inside modal -->
-        <div class="space-y-1">
+        <div class="space-y-1.5">
           <div class="text-[10px] font-bold text-slate-400">切換分化部位：</div>
           <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             <button
@@ -193,6 +238,20 @@
               :class="selectedSplit === s.key ? 'bg-brand-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
             >
               {{ s.label }}
+            </button>
+          </div>
+
+          <!-- Sub-focus switcher inside modal -->
+          <div v-if="currentSubFocusList.length > 0" class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              v-for="sf in currentSubFocusList"
+              :key="sf.key"
+              @click="openAIRecommendModal(selectedSplit, sf.key)"
+              :disabled="loadingAI"
+              class="text-[10px] font-bold px-2 py-0.8 rounded-md whitespace-nowrap transition-all"
+              :class="selectedSubFocus === sf.key ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'"
+            >
+              {{ sf.label }}
             </button>
           </div>
         </div>
@@ -237,8 +296,8 @@
             @click="adoptAIRoutine"
             class="flex-1 py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <Flame class="w-4 h-4" />
-            <span>👉 採用此課表並立即開練</span>
+            <ClipboardList class="w-4 h-4" />
+            <span>👉 帶入此課表填寫紀錄</span>
           </button>
           <button
             @click="showAIModal = false"
@@ -256,7 +315,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X
+  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkoutStore } from '@/stores/workout'
@@ -279,6 +338,9 @@ const recommendedRoutine = ref(null)
 const loadingAI = ref(false)
 
 const selectedSplit = ref('AUTO')
+const selectedSubFocus = ref('DEFAULT')
+const customNotes = ref('')
+
 const splitOptions = [
   { key: 'AUTO', label: '⚡ 智慧推薦' },
   { key: 'CHEST', label: '💪 胸部專攻' },
@@ -289,6 +351,51 @@ const splitOptions = [
   { key: 'PULL', label: '⚡ 拉力日' },
   { key: 'CARDIO', label: '🏃 有氧燃脂' }
 ]
+
+const currentSubFocusList = computed(() => {
+  if (selectedSplit.value === 'BACK') {
+    return [
+      { key: 'DEFAULT', label: '⚖️ 全背均衡' },
+      { key: 'WIDTH', label: '📐 闊背寬度 (垂直拉)' },
+      { key: 'THICKNESS', label: '🧱 上背厚度 (水平划船)' }
+    ]
+  }
+  if (selectedSplit.value === 'CHEST') {
+    return [
+      { key: 'DEFAULT', label: '⚖️ 全胸均衡' },
+      { key: 'UPPER', label: '📐 鎖骨上胸' },
+      { key: 'LOWER', label: '🧱 下胸輪廓' }
+    ]
+  }
+  if (selectedSplit.value === 'SHOULDERS') {
+    return [
+      { key: 'DEFAULT', label: '⚖️ 全肩立體' },
+      { key: 'LATERAL', label: '📐 側平舉 (肩寬)' },
+      { key: 'REAR', label: '🧱 後束與上背' }
+    ]
+  }
+  if (selectedSplit.value === 'LEGS') {
+    return [
+      { key: 'DEFAULT', label: '⚖️ 全腿均衡' },
+      { key: 'QUADS', label: '🦵 股四頭 (深蹲)' },
+      { key: 'GLUTES', label: '🍑 臀肌/後鏈 (RDL)' }
+    ]
+  }
+  if (selectedSplit.value === 'CARDIO') {
+    return [
+      { key: 'DEFAULT', label: '⚖️ 綜合有氧' },
+      { key: 'LISS', label: '🏃 穩態燃脂 (Zone 2)' },
+      { key: 'HIIT', label: '⚡ 高強度間歇 (HIIT)' }
+    ]
+  }
+  return []
+})
+
+function selectSplit(splitKey) {
+  selectedSplit.value = splitKey
+  selectedSubFocus.value = 'DEFAULT'
+  customNotes.value = '' // Auto-clear input to enhance UX when switching tags
+}
 
 const todayFormatted = computed(() => {
   const d = new Date()
@@ -336,15 +443,25 @@ async function fetchRecentSessions() {
   }
 }
 
-async function openAIRecommendModal(customSplit = null) {
+async function openAIRecommendModal(customSplit = null, customSubFocus = null) {
   if (customSplit) {
     selectedSplit.value = customSplit
+    if (customSubFocus) {
+      selectedSubFocus.value = customSubFocus
+    } else if (customSplit !== selectedSplit.value) {
+      selectedSubFocus.value = 'DEFAULT'
+    }
+  } else if (customSubFocus) {
+    selectedSubFocus.value = customSubFocus
   }
+
   loadingAI.value = true
   try {
     const res = await aiAPI.recommendWorkout({
       duration_minutes: 60,
-      focus_preference: selectedSplit.value === 'AUTO' ? null : selectedSplit.value
+      focus_preference: selectedSplit.value === 'AUTO' ? null : selectedSplit.value,
+      sub_focus: selectedSubFocus.value === 'DEFAULT' ? null : selectedSubFocus.value,
+      custom_notes: customNotes.value || null
     })
     recommendedRoutine.value = res.data
     showAIModal.value = true

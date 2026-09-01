@@ -11,21 +11,21 @@
         class="py-2 px-3.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-black shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center gap-1.5"
       >
         <Plus class="w-4 h-4" />
-        <span>開始自由訓練</span>
+        <span>記錄今日訓練</span>
       </button>
     </div>
 
-    <!-- Active Ongoing Banner (if active) -->
+    <!-- Active Draft Banner (if active) -->
     <div
-      v-if="workoutStore.isWorkoutActive"
+      v-if="workoutStore.activeExercises.length > 0"
       @click="$router.push('/active-workout')"
-      class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all shadow-float"
+      class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all shadow-float"
     >
       <div class="flex items-center gap-2.5">
-        <Flame class="w-5 h-5 animate-pulse text-white" />
-        <span class="text-xs font-bold">{{ workoutStore.sessionName }} 進行中...</span>
+        <Flame class="w-5 h-5 text-white" />
+        <span class="text-xs font-bold">{{ workoutStore.sessionName }} 草稿編輯中 ({{ workoutStore.activeExercises.length }} 個動作)</span>
       </div>
-      <span class="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-lg">回到訓練</span>
+      <span class="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-lg">繼續填寫</span>
     </div>
 
     <!-- Navigation Tabs -->

@@ -1,14 +1,16 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { workoutsAPI } from '@/api/client'
 
 export const useWorkoutStore = defineStore('workout', () => {
-  // 1. Active In-Gym Workout Session State
+  // 1. Workout Session State (Flexible post-workout or in-gym logging)
   const isWorkoutActive = ref(false)
   const sessionName = ref('今日自訂訓練')
   const routineId = ref(null)
   const startTime = ref(null)
-  const activeExercises = ref([]) // List of { exercise_id, name, target_muscle_group, sets: [{ set_number, weight_kg, reps, rpe, is_completed, prev_weight, prev_reps }] }
+  const sessionDate = ref(new Date().toISOString().substring(0, 10))
+  const durationMinutes = ref(45)
+  const activeExercises = ref([]) // List of { exercise_id, name, target_muscle_group, timerStatus: 'IDLE'|'RUNNING'|'PAUSED', elapsedSeconds: 0, sets: [{ set_number, weight_kg, reps, rpe, is_completed, prev_weight, prev_reps }] }
 
   // 2. Rest Timer State
   const isTimerActive = ref(false)
@@ -25,6 +27,8 @@ export const useWorkoutStore = defineStore('workout', () => {
       sessionName.value = data.sessionName || '今日訓練'
       routineId.value = data.routineId || null
       startTime.value = data.startTime ? new Date(data.startTime) : null
+      sessionDate.value = data.sessionDate || new Date().toISOString().substring(0, 10)
+      durationMinutes.value = data.durationMinutes || 45
       activeExercises.value = data.activeExercises || []
     } catch (e) {
       console.error('Failed to parse active workout cache:', e)
@@ -33,7 +37,7 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   // Save active workout to localStorage whenever it changes
   watch(
-    [isWorkoutActive, sessionName, routineId, startTime, activeExercises],
+    [isWorkoutActive, sessionName, routineId, startTime, sessionDate, durationMinutes, activeExercises],
     () => {
       if (isWorkoutActive.value) {
         localStorage.setItem(
@@ -43,6 +47,8 @@ export const useWorkoutStore = defineStore('workout', () => {
             sessionName: sessionName.value,
             routineId: routineId.value,
             startTime: startTime.value,
+            sessionDate: sessionDate.value,
+            durationMinutes: durationMinutes.value,
             activeExercises: activeExercises.value
           })
         )
@@ -59,16 +65,20 @@ export const useWorkoutStore = defineStore('workout', () => {
     sessionName.value = name
     routineId.value = routine?.id || null
     startTime.value = new Date()
+    sessionDate.value = new Date().toISOString().substring(0, 10)
+    durationMinutes.value = 45
     activeExercises.value = []
 
     if (routine && routine.exercises) {
       routine.exercises.forEach((re) => {
         const sets = []
-        for (let i = 1; i <= re.target_sets; i++) {
+        const numSets = Number(re.target_sets) || 3
+        const numReps = parseInt(re.target_reps) || 10
+        for (let i = 1; i <= numSets; i++) {
           sets.push({
             set_number: i,
             weight_kg: 0,
-            reps: re.target_reps || 10,
+            reps: numReps,
             rpe: 8.0,
             is_completed: false,
             prev_weight: null,
@@ -79,6 +89,8 @@ export const useWorkoutStore = defineStore('workout', () => {
           exercise_id: re.exercise_id,
           name: re.exercise?.name || '未知動作',
           target_muscle_group: re.exercise?.target_muscle_group || 'CHEST',
+          timerStatus: 'IDLE',
+          elapsedSeconds: 0,
           sets
         })
       })
@@ -94,6 +106,8 @@ export const useWorkoutStore = defineStore('workout', () => {
       exercise_id: exercise.id,
       name: exercise.name,
       target_muscle_group: exercise.target_muscle_group,
+      timerStatus: 'IDLE',
+      elapsedSeconds: 0,
       sets: [
         {
           set_number: 1,
@@ -136,6 +150,24 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   function removeExercise(exerciseIndex) {
     activeExercises.value.splice(exerciseIndex, 1)
+  }
+
+  // Toggle exercise-specific timer (Start / Pause / Resume)
+  function toggleExerciseTimer(exerciseIndex) {
+    const ex = activeExercises.value[exerciseIndex]
+    if (!ex) return
+    if (ex.timerStatus === 'RUNNING') {
+      ex.timerStatus = 'PAUSED'
+    } else {
+      ex.timerStatus = 'RUNNING'
+    }
+  }
+
+  function resetExerciseTimer(exerciseIndex) {
+    const ex = activeExercises.value[exerciseIndex]
+    if (!ex) return
+    ex.timerStatus = 'IDLE'
+    ex.elapsedSeconds = 0
   }
 
   // Toggle set completion and trigger rest timer
@@ -203,15 +235,16 @@ export const useWorkoutStore = defineStore('workout', () => {
     timerTotalSeconds.value += seconds
   }
 
-  // Finish Workout Session
-  async function finishWorkout() {
+  // Finish and submit workout session to backend
+  async function finishWorkout(customDuration = null, customDateStr = null) {
     const allSets = []
     let totalVol = 0
 
     activeExercises.value.forEach((ex) => {
       ex.sets.forEach((s) => {
-        if (s.is_completed) {
-          totalVol += s.weight_kg * s.reps
+        // If weight > 0 or reps > 0 or marked completed, we include it
+        if (s.is_completed || s.weight_kg > 0 || s.reps > 0) {
+          totalVol += (Number(s.weight_kg) || 0) * (Number(s.reps) || 0)
           allSets.push({
             exercise_id: ex.exercise_id,
             set_number: s.set_number,
@@ -224,16 +257,18 @@ export const useWorkoutStore = defineStore('workout', () => {
       })
     })
 
-    const endTime = new Date()
-    const duration = startTime.value
-      ? Math.max(1, Math.round((endTime - new Date(startTime.value)) / 60000))
-      : 30
+    if (allSets.length === 0) {
+      throw new Error('請至少填寫 1 組動作的重量或次數！')
+    }
+
+    const targetDate = customDateStr ? new Date(customDateStr) : (startTime.value ? new Date(startTime.value) : new Date())
+    const duration = customDuration !== null ? Number(customDuration) : (durationMinutes.value || 45)
 
     const sessionPayload = {
       routine_id: routineId.value,
-      session_name: sessionName.value,
-      start_time: startTime.value ? new Date(startTime.value).toISOString() : new Date().toISOString(),
-      end_time: endTime.toISOString(),
+      session_name: sessionName.value || '今日訓練紀錄',
+      start_time: targetDate.toISOString(),
+      end_time: new Date(targetDate.getTime() + duration * 60000).toISOString(),
       duration_minutes: duration,
       sets: allSets
     }
@@ -253,6 +288,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   function cancelWorkout() {
     isWorkoutActive.value = false
     stopRestTimer()
+    activeExercises.value = []
     localStorage.removeItem('fitpulse_active_workout')
   }
 
@@ -261,6 +297,8 @@ export const useWorkoutStore = defineStore('workout', () => {
     sessionName,
     routineId,
     startTime,
+    sessionDate,
+    durationMinutes,
     activeExercises,
     isTimerActive,
     timerTotalSeconds,
@@ -270,6 +308,8 @@ export const useWorkoutStore = defineStore('workout', () => {
     addSet,
     removeSet,
     removeExercise,
+    toggleExerciseTimer,
+    resetExerciseTimer,
     toggleSetComplete,
     startRestTimer,
     stopRestTimer,

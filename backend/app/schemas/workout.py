@@ -123,4 +123,6 @@ class PreviousSetHint(BaseModel):
     last_weight_kg: float
     last_reps: int
     last_estimated_1rm: float
+    pr_max_weight_kg: float = 0.0
+    pr_max_1rm: float = 0.0
     suggestion: str # e.g. "上次達成 60kg x 10，本次建議挑戰 62.5kg x 8-10 或加 1 組"

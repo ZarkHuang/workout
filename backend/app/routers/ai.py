@@ -186,6 +186,48 @@ SPLIT_TEMPLATES = {
         ],
         "cooldown_tips": ["吊單槓背闊肌重力伸展 40 秒", "嬰兒式背部與下背拉伸 60 秒"]
     },
+    "BACK_WIDTH": {
+        "title": "V字倒三角·闊背寬度垂直拉專攻課表",
+        "target_split": "BACK",
+        "rationale": "專注於闊背肌肌纖維走向，以垂直拉與單臂拉伸為主軸，最大化背部展開寬度與翅膀視覺效果。",
+        "warmup_tips": ["滑輪直臂下壓 20 次預先激活闊背", "懸垂肩胛下壓 12 次", "動態背部伸展"],
+        "exercises": [
+            AIRoutineExerciseItem(exercise_name="滑輪高位下拉 (寬握)", target_muscle_group="BACK", target_sets=4, target_reps="8-10", suggested_weight_kg=50.0, notes="專注闊背外側拉伸與收縮，大臂內夾"),
+            AIRoutineExerciseItem(exercise_name="滑輪高位下拉 (窄握反手/V把)", target_muscle_group="BACK", target_sets=4, target_reps="10-12", suggested_weight_kg=45.0, notes="長運動行程，強化闊背下部深度收縮"),
+            AIRoutineExerciseItem(exercise_name="站姿繩索直臂下壓", target_muscle_group="BACK", target_sets=4, target_reps="12-15", suggested_weight_kg=20.0, notes="孤立闊背肌，手肘微彎鎖定，頂峰擠壓 1 秒"),
+            AIRoutineExerciseItem(exercise_name="單臂啞鈴划船", target_muscle_group="BACK", target_sets=3, target_reps="10-12", suggested_weight_kg=22.0, notes="弧線拉向髖關節，底部充分放展"),
+            AIRoutineExerciseItem(exercise_name="啞鈴斜板二頭彎舉", target_muscle_group="ARMS", target_sets=3, target_reps="10-12", suggested_weight_kg=12.0, notes="二頭肌長頭拉伸收尾")
+        ],
+        "cooldown_tips": ["雙手抓住立柱側身拉伸闊背肌 45 秒", "吊單槓懸垂拉伸 40 秒"]
+    },
+    "BACK_THICKNESS": {
+        "title": "重裝裝甲·上背中背厚度划船專攻課表",
+        "target_split": "BACK",
+        "rationale": "以大重量水平划船與肩胛內收為主軸，深度轟炸菱形肌、中下斜方肌與豎脊肌，打造立體厚實背部。",
+        "warmup_tips": ["空槓俯身划船 15 次抓背部發力感", "繩索面拉 15 次激活上背", "胸椎活動度旋轉"],
+        "exercises": [
+            AIRoutineExerciseItem(exercise_name="槓鈴俯身划船", target_muscle_group="BACK", target_sets=4, target_reps="6-8", suggested_weight_kg=55.0, notes="厚度主項，核心吸滿，肘部帶動拉向肚臍夾緊上背"),
+            AIRoutineExerciseItem(exercise_name="坐姿繩索划船", target_muscle_group="BACK", target_sets=4, target_reps="8-10", suggested_weight_kg=50.0, notes="頂峰肩胛骨完全後夾 1 秒，離心控制慢放"),
+            AIRoutineExerciseItem(exercise_name="單臂啞鈴划船", target_muscle_group="BACK", target_sets=4, target_reps="8-10", suggested_weight_kg=24.0, notes="大重量單側划船，專注背部擠壓"),
+            AIRoutineExerciseItem(exercise_name="繩索面拉 (Face Pull)", target_muscle_group="SHOULDERS", target_sets=4, target_reps="12-15", suggested_weight_kg=20.0, notes="手肘拉高外展，強化後束、斜方中下束與菱形肌"),
+            AIRoutineExerciseItem(exercise_name="站姿槓鈴二頭彎舉", target_muscle_group="ARMS", target_sets=3, target_reps="10-12", suggested_weight_kg=25.0, notes="二頭肌爆發收尾")
+        ],
+        "cooldown_tips": ["抱胸拱背圓背拉伸 45 秒", "貓牛式伸展放鬆脊椎 60 秒"]
+    },
+    "CHEST_UPPER": {
+        "title": "鎖骨飽滿·上胸力量與厚度專攻課表",
+        "target_split": "CHEST",
+        "rationale": "著重強化上胸（鎖骨端胸大肌），改善胸型上部空缺，打造立體厚實鎧甲胸肌。",
+        "warmup_tips": ["彈力帶肩袖外旋 20 次", "上斜空槓推舉 15 次", "動態擴胸 15 次"],
+        "exercises": [
+            AIRoutineExerciseItem(exercise_name="上斜槓鈴臥推", target_muscle_group="CHEST", target_sets=4, target_reps="6-8", suggested_weight_kg=50.0, notes="椅背約 30 度，槓鈴下落至鎖骨下方 2 公分"),
+            AIRoutineExerciseItem(exercise_name="上斜啞鈴臥推", target_muscle_group="CHEST", target_sets=4, target_reps="8-10", suggested_weight_kg=20.0, notes="頂峰主動夾胸，離心感受上胸強烈拉伸"),
+            AIRoutineExerciseItem(exercise_name="槓鈴平板臥推", target_muscle_group="CHEST", target_sets=3, target_reps="8-10", suggested_weight_kg=55.0, notes="複合維持中胸厚度"),
+            AIRoutineExerciseItem(exercise_name="低位繩索上拉夾胸 (滑輪飛鳥)", target_muscle_group="CHEST", target_sets=4, target_reps="12-15", suggested_weight_kg=12.5, notes="滑輪置於最低處，雙手沿上斜角度向上夾緊胸肌上部"),
+            AIRoutineExerciseItem(exercise_name="三頭繩索高位下壓", target_muscle_group="ARMS", target_sets=3, target_reps="12-15", suggested_weight_kg=20.0, notes="推力三頭收尾")
+        ],
+        "cooldown_tips": ["手扶門框上胸伸展 45 秒", "胸大肌靠牆伸展 30 秒"]
+    },
     "SHOULDERS": {
         "title": "三角肌前中後束立體雕塑課表",
         "target_split": "SHOULDERS",
@@ -313,14 +355,41 @@ def recommend_workout(
         "CARDIO": "有氧燃脂日 (心肺/HIIT)"
     }
     target_label_zh = target_labels.get(target_focus, "胸部專攻")
-    fallback_template = SPLIT_TEMPLATES.get(target_focus, SPLIT_TEMPLATES["CHEST"])
+
+    sub_focus_key = (req.sub_focus or "").upper().strip()
+    custom_notes = req.custom_notes or req.special_conditions or ""
+
+    # Match sub-focus template if available
+    template_key = target_focus
+    if target_focus == "BACK" and sub_focus_key in ["WIDTH", "LAT_WIDTH"]:
+        template_key = "BACK_WIDTH"
+    elif target_focus == "BACK" and sub_focus_key in ["THICKNESS", "UPPER_BACK"]:
+        template_key = "BACK_THICKNESS"
+    elif target_focus == "CHEST" and sub_focus_key in ["UPPER", "UPPER_CHEST"]:
+        template_key = "CHEST_UPPER"
+
+    fallback_template = SPLIT_TEMPLATES.get(template_key, SPLIT_TEMPLATES.get(target_focus, SPLIT_TEMPLATES["CHEST"]))
+
+    sub_focus_desc = "全面均衡"
+    if sub_focus_key in ["WIDTH", "LAT_WIDTH"]:
+        sub_focus_desc = "【闊背肌寬度 (V字倒三角垂直拉為主：寬握下拉/引體向上/直臂下壓)】"
+    elif sub_focus_key in ["THICKNESS", "UPPER_BACK"]:
+        sub_focus_desc = "【上背中背厚度 (水平划船為主：槓鈴划船/單臂划船/坐姿划船/面拉)】"
+    elif sub_focus_key in ["UPPER", "UPPER_CHEST"]:
+        sub_focus_desc = "【鎖骨上胸飽滿度 (上斜推舉/低位滑輪上拉飛鳥)】"
+    elif sub_focus_key in ["LATERAL", "LATERAL_DELT"]:
+        sub_focus_desc = "【三角肌中束肩寬 (啞鈴/繩索側平舉)】"
+    elif sub_focus_key in ["QUADS"]:
+        sub_focus_desc = "【股四頭肌前側力量 (深蹲/腿推/腿屈伸)】"
+    elif sub_focus_key in ["GLUTES", "HAMSTRINGS"]:
+        sub_focus_desc = "【臀大肌與後鏈伸展 (RDL/臀推/腿彎舉)】"
 
     model = get_gemini_client()
     if not model:
         return AIRoutineRecommendResponse(
             routine_title=fallback_template["title"],
             target_split=fallback_template["target_split"],
-            rationale=f"系統依據您的恢復狀態（{target_label_zh}已充分修復）為您規劃單一部位深度訓練。{fallback_template['rationale']}",
+            rationale=f"系統依據您的恢復狀態（{target_label_zh}已充分修復）與專攻偏好（{sub_focus_desc}）為您規劃深度課表。{fallback_template['rationale']}",
             warmup_tips=fallback_template["warmup_tips"],
             exercises=fallback_template["exercises"],
             cooldown_tips=fallback_template["cooldown_tips"]
@@ -331,9 +400,18 @@ def recommend_workout(
 【重要排課原則】
 學員嚴格採用「單一部位分化訓練 (Body-Part Split: 胸、肩、背、腿)」！
 ⚠️ 嚴格禁止在同一次訓練中混搭互相衝突的大肌群（例如：絕對不可胸部與背部混練、絕對不可胸部與大腿深蹲混練）！
-今日唯一指定專攻部位為：【{target_label_zh} ({target_focus})】。
+今日指定專攻部位為：【{target_label_zh} ({target_focus})】。
 
-請設計 4-5 個專屬於該部位的黃金訓練動作（可含 1 個協同輔助肌群，如練胸可搭三頭、練背可搭二頭、練肩可搭後束、練腿可搭小腿，但 80% 動作必須純粹為【{target_label_zh}】）。
+【學員特定子維度 / 客製需求】
+- 🎯 進階子專攻重點: {sub_focus_desc}
+- 💬 學員客製許願/特殊偏好: {custom_notes or '無'}
+
+【跨部位衝突客製與教練專業提醒原則】
+若學員在客製許願中指定了與今日主目標部位不一致的動作（例如：今日選【胸部專攻】，但備註【想要引體向上】）：
+1. 彈性滿足：可在課表最後 1 動作或熱身中為其加入該動作滿足願望。
+2. 專業教練備註（重要）：在 rationale（推薦理由）及該動作的 notes（備註）中，明確說明：「💡 教練提醒：已依您的願望加入【指定動作】，但此動作屬於【非今日主目標部位】，建議作為輕量輔助/拉伸完成，避免累積過多疲勞影響後續分化訓練的修復週期！」
+
+請設計 4-5 個專屬於該部位的黃金訓練動作（可含 1 個協同輔助肌群，如練胸可搭三頭、練背可搭二頭、練肩可搭後束、練腿可搭小腿，80% 以上動作必須為【{target_label_zh}】並緊密貼合指定子維度）。
 
 【學員數據】
 - 今日目標部位: {target_label_zh} ({target_focus})
@@ -347,9 +425,9 @@ def recommend_workout(
 
 請嚴格以純 JSON 格式回應：
 {{
-  "routine_title": "{target_label_zh}深度突破課表",
+  "routine_title": "{target_label_zh} - {sub_focus_desc.replace('【', '').replace('】', '')}客製課表",
   "target_split": "{target_focus}",
-  "rationale": "今日推薦理由（說明為何今天最適合專攻此分化部位，2 句話）",
+  "rationale": "今日推薦理由（若有跨部位許願，在此包含專業教練溫馨提醒，2-3 句話）",
   "warmup_tips": ["熱身動作 1", "熱身動作 2"],
   "exercises": [
     {{
