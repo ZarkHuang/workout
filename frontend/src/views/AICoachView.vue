@@ -1,7 +1,7 @@
 <template>
-  <div class="pb-24 pt-2 px-4 max-w-lg mx-auto flex flex-col h-[calc(100vh-4rem)]">
-    <!-- Header -->
-    <div class="flex items-center justify-between py-2 border-b border-slate-100 mb-2">
+  <div class="fixed inset-x-0 top-14 bottom-16 max-w-lg mx-auto flex flex-col bg-slate-50 overflow-hidden px-4">
+    <!-- Header (Fixed Top) -->
+    <div class="flex-shrink-0 flex items-center justify-between py-2.5 border-b border-slate-200/80 bg-slate-50 z-10">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand-500 to-teal-600 text-white flex items-center justify-center shadow-sm">
           <Bot class="w-5 h-5" />
@@ -22,8 +22,8 @@
       </button>
     </div>
 
-    <!-- Chat Messages Scroll Area -->
-    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1">
+    <!-- Chat Messages Scroll Area (Flex 1 Scroll) -->
+    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 py-2 min-h-0">
       <!-- Welcome Intro Bubble -->
       <div class="flex items-start gap-2">
         <div class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -116,36 +116,39 @@
       </div>
     </div>
 
-    <!-- Quick Prompt Pills -->
-    <div class="py-2 flex gap-1.5 overflow-x-auto no-scrollbar">
-      <button
-        v-for="pill in promptPills"
-        :key="pill"
-        @click="sendMessageWithText(pill)"
-        :disabled="loading"
-        class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-700 whitespace-nowrap border border-slate-200/60 active:scale-95 transition-all"
-      >
-        {{ pill }}
-      </button>
-    </div>
+    <!-- Quick Prompt Pills & Message Input Bar (Fixed Bottom) -->
+    <div class="flex-shrink-0 pt-1.5 pb-2 bg-slate-50 space-y-1.5 border-t border-slate-200/60">
+      <!-- Quick Prompt Pills -->
+      <div class="flex gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+        <button
+          v-for="pill in promptPills"
+          :key="pill"
+          @click="sendMessageWithText(pill)"
+          :disabled="loading"
+          class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-700 whitespace-nowrap border border-slate-200/60 active:scale-95 transition-all"
+        >
+          {{ pill }}
+        </button>
+      </div>
 
-    <!-- Message Input Bar -->
-    <div class="pt-1 flex items-center gap-2">
-      <input
-        v-model="inputMessage"
-        type="text"
-        placeholder="向 AI 詢問訓練菜單、換動作或飲食建議..."
-        @keyup.enter="sendMessage"
-        :disabled="loading"
-        class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs focus:outline-none focus:border-brand-500 shadow-apple"
-      />
-      <button
-        @click="sendMessage"
-        :disabled="loading || !inputMessage.trim()"
-        class="w-10 h-10 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-40"
-      >
-        <Send class="w-4 h-4" />
-      </button>
+      <!-- Message Input Bar -->
+      <div class="flex items-center gap-2">
+        <input
+          v-model="inputMessage"
+          type="text"
+          placeholder="向 AI 詢問訓練菜單、換動作或飲食建議..."
+          @keyup.enter="sendMessage"
+          :disabled="loading"
+          class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs focus:outline-none focus:border-brand-500 shadow-apple"
+        />
+        <button
+          @click="sendMessage"
+          :disabled="loading || !inputMessage.trim()"
+          class="w-10 h-10 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-40"
+        >
+          <Send class="w-4 h-4" />
+        </button>
+      </div>
     </div>
   </div>
 </template>

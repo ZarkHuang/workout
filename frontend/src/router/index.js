@@ -82,4 +82,11 @@ router.beforeEach((to, from, next) => {
   }
 })
 
+// Auto-reload and recover when a new deployment invalidates old chunks
+router.onError((error, to) => {
+  if (error.message.includes('Failed to fetch') || error.message.includes('Importing a module script failed') || error.message.includes('dynamically imported module')) {
+    window.location.href = to.fullPath
+  }
+})
+
 export default router

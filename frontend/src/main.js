@@ -5,7 +5,24 @@ import router from './router'
 import './style.css'
 import { registerSW } from 'virtual:pwa-register'
 
-registerSW({ immediate: true })
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    // Auto activate and refresh when new version is deployed!
+    updateSW(true)
+  }
+})
+
+// Check for updates when user returns to tab / unlocks phone
+if ('serviceWorker' in navigator) {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) reg.update()
+      })
+    }
+  })
+}
 
 // Chart.js registration
 import {
