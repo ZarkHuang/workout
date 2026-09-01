@@ -251,6 +251,7 @@
               <option value="PUSH">推日 (PUSH - 胸/肩/三頭)</option>
               <option value="PULL">拉日 (PULL - 背/二頭)</option>
               <option value="LEGS">腿日 (LEGS - 腿/臀/小腿)</option>
+              <option value="CARDIO">有氧日 (CARDIO - 心肺/HIIT/燃脂)</option>
               <option value="UPPER">上半身 (UPPER)</option>
               <option value="LOWER">下半身 (LOWER)</option>
               <option value="FULL_BODY">全身綜合 (FULL BODY)</option>
@@ -326,7 +327,8 @@ const muscleFilters = [
   { key: 'LEGS', label: '腿部' },
   { key: 'SHOULDERS', label: '肩部' },
   { key: 'ARMS', label: '手臂' },
-  { key: 'CORE', label: '核心' }
+  { key: 'CORE', label: '核心' },
+  { key: 'CARDIO', label: '有氧' }
 ]
 
 const filteredExercises = computed(() => {

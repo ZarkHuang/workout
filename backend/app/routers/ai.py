@@ -241,6 +241,20 @@ SPLIT_TEMPLATES = {
             AIRoutineExerciseItem(exercise_name="站姿槓鈴二頭彎舉", target_muscle_group="ARMS", target_sets=3, target_reps="10-12", suggested_weight_kg=25.0, notes="二頭肌泵感收尾")
         ],
         "cooldown_tips": ["懸垂背部伸展 40 秒", "手臂二頭前側拉伸 30 秒"]
+    },
+    "CARDIO": {
+        "title": "心肺耐力與高效燃脂有氧課表",
+        "target_split": "CARDIO",
+        "rationale": "結合恆速心肺 (Zone 2) 與高強度間歇 (HIIT)，最大化熱量赤字與心肺耐力，促進全身血液循環與肌肉主動恢復。",
+        "warmup_tips": ["慢速原地踏步與關節環繞 3 分鐘", "開合跳 20 次激活全身心率", "動態腿部擺盪各 15 次"],
+        "exercises": [
+            AIRoutineExerciseItem(exercise_name="跑步機坡度快走 / 變速慢跑", target_muscle_group="CARDIO", target_sets=1, target_reps="20分鐘", suggested_weight_kg=0.0, notes="設定坡度 8-10%，速度 5.0 km/h，維持穩態燃脂心率"),
+            AIRoutineExerciseItem(exercise_name="划船機高強度間歇 (HIIT)", target_muscle_group="CARDIO", target_sets=5, target_reps="30秒衝刺", suggested_weight_kg=0.0, notes="全力衝刺 30 秒，慢划休息 60 秒，循環 5 組"),
+            AIRoutineExerciseItem(exercise_name="飛輪間歇踩踏", target_muscle_group="CARDIO", target_sets=4, target_reps="45秒衝刺", suggested_weight_kg=0.0, notes="站姿高阻力爬坡與高速平路衝刺交替"),
+            AIRoutineExerciseItem(exercise_name="波比跳與登山者式循環", target_muscle_group="CARDIO", target_sets=3, target_reps="15次", suggested_weight_kg=0.0, notes="無間歇切換，全身大肌群參與極速燃脂"),
+            AIRoutineExerciseItem(exercise_name="戰繩交替波浪", target_muscle_group="CARDIO", target_sets=3, target_reps="30秒", suggested_weight_kg=0.0, notes="核心鎖緊，雙手高速甩動爆發心肺")
+        ],
+        "cooldown_tips": ["股四頭肌與小腿靜態拉伸各 45 秒", "嬰兒式深呼吸放鬆 60 秒降低心率"]
     }
 }
 
@@ -267,7 +281,7 @@ def recommend_workout(
     # Recovery text
     recovery_summary = "; ".join([f"{m.label_zh}: {m.status} ({m.recovery_percentage}%)" for m in recovery.muscles])
 
-    # Determine targeted body-part split (CHEST, BACK, SHOULDERS, LEGS, PUSH, PULL)
+    # Determine targeted body-part split (CHEST, BACK, SHOULDERS, LEGS, PUSH, PULL, CARDIO)
     focus_pref = (req.focus_preference or "").upper().strip()
     if focus_pref in SPLIT_TEMPLATES:
         target_focus = focus_pref
@@ -295,7 +309,8 @@ def recommend_workout(
         "SHOULDERS": "肩部專攻",
         "LEGS": "腿部專攻",
         "PUSH": "推力日 (胸/肩/三頭)",
-        "PULL": "拉力日 (背/二頭)"
+        "PULL": "拉力日 (背/二頭)",
+        "CARDIO": "有氧燃脂日 (心肺/HIIT)"
     }
     target_label_zh = target_labels.get(target_focus, "胸部專攻")
     fallback_template = SPLIT_TEMPLATES.get(target_focus, SPLIT_TEMPLATES["CHEST"])

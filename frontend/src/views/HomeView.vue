@@ -286,7 +286,8 @@ const splitOptions = [
   { key: 'SHOULDERS', label: '🛡️ 肩部專攻' },
   { key: 'LEGS', label: '🦵 臀腿突破' },
   { key: 'PUSH', label: '🔥 推力日' },
-  { key: 'PULL', label: '⚡ 拉力日' }
+  { key: 'PULL', label: '⚡ 拉力日' },
+  { key: 'CARDIO', label: '🏃 有氧燃脂' }
 ]
 
 const todayFormatted = computed(() => {

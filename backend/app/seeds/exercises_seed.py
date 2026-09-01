@@ -316,14 +316,60 @@ GOLDEN_EXERCISES = [
         "secondary_muscle_group": "LEGS,BACK",
         "equipment": "MACHINE",
         "instructions": "髖關節貼合羅馬椅墊，俯身向下至大腿拉伸後，利用豎脊肌與臀大肌發力將軀幹抬平。"
+    },
+
+    # CARDIO (有氧與心肺燃脂)
+    {
+        "name": "跑步機坡度快走 / 變速慢跑",
+        "name_en": "Incline Treadmill Walk / Jog",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "LEGS,CORE",
+        "equipment": "MACHINE",
+        "instructions": "設定坡度 6-12%，速度 4.5-6.5 km/h，大步邁開擺臂，維持 Zone 2-3 燃脂心率 20-30 分鐘。"
+    },
+    {
+        "name": "划船機高強度間歇 (HIIT)",
+        "name_en": "Rowing Machine Intervals",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "BACK,LEGS,CORE",
+        "equipment": "MACHINE",
+        "instructions": "雙腿蹬腿發力帶動軀幹後傾，拉柄至上腹。進行衝刺 30 秒、慢划 60 秒的間歇循環。"
+    },
+    {
+        "name": "飛輪間歇踩踏",
+        "name_en": "Spin Bike Cardio",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "LEGS",
+        "equipment": "MACHINE",
+        "instructions": "保持核心穩定不晃動，交替進行高阻力站姿爬坡與高轉速平路衝刺。"
+    },
+    {
+        "name": "戰繩交替波浪",
+        "name_en": "Battle Ropes Alternating Waves",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "SHOULDERS,ARMS,CORE",
+        "equipment": "BODYWEIGHT",
+        "instructions": "微蹲鎖定核心，雙手握繩交替快速甩動製造持續波浪，全力衝刺爆發心肺。"
+    },
+    {
+        "name": "橢圓機心肺耐力訓練",
+        "name_en": "Elliptical Trainer Cardio",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "LEGS",
+        "equipment": "MACHINE",
+        "instructions": "雙手推拉把手配合腳步踏步，零關節衝擊持續燃脂 20-40 分鐘。"
+    },
+    {
+        "name": "波比跳與登山者式循環",
+        "name_en": "Burpees & Mountain Climbers",
+        "target_muscle_group": "CARDIO",
+        "secondary_muscle_group": "CHEST,LEGS,CORE",
+        "equipment": "BODYWEIGHT",
+        "instructions": "波比跳 10 次銜接登山者式 30 次，全身大肌群參與，極速拉高心率加速脂肪燃燒。"
     }
 ]
 
 def seed_exercises(db: Session):
-    existing_count = db.query(Exercise).filter(Exercise.is_custom == False).count()
-    if existing_count >= len(GOLDEN_EXERCISES):
-        return
-    
     for ex_data in GOLDEN_EXERCISES:
         existing = db.query(Exercise).filter(Exercise.name == ex_data["name"]).first()
         if not existing:
