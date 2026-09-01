@@ -43,6 +43,7 @@ pnpm-debug.log*
 # Root temp references
 AiDiagnosisView.vue
 ai.py
+*.cjs
 
 # IDE & OS
 .vscode/
