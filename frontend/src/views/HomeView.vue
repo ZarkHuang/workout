@@ -97,6 +97,7 @@
             {{ sf.label }}
           </button>
         </div>
+      </div>
       <!-- Custom Note / Wish input -->
       <div class="pt-1.5 mb-3.5 relative">
         <input
