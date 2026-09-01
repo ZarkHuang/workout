@@ -16,6 +16,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None # User Nickname
     gender: Optional[str] = "MALE" # MALE, FEMALE
     age: Optional[int] = 26
     height_cm: Optional[float] = 175.0

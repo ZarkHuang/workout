@@ -195,7 +195,13 @@ def update_profile(
         profile = UserProfile(user_id=current_user.id)
         db.add(profile)
 
+    # Update nickname if provided
+    if profile_data.name and profile_data.name.strip():
+        current_user.name = profile_data.name.strip()
+        db.add(current_user)
+
     update_fields = profile_data.model_dump(exclude_unset=True)
+    update_fields.pop("name", None) # Handled separately on User model
     
     # Check if we need to auto-recalculate target calories & macros
     should_recalc = any(k in update_fields for k in ["gender", "age", "height_cm", "current_weight_kg", "fitness_goal", "activity_level"])

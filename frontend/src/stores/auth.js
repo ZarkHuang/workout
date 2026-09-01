@@ -54,9 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       const res = await authAPI.updateProfile(profileData)
-      if (user.value) {
-        user.value.profile = res.data
-      }
+      await fetchMe()
       return res.data
     } catch (err) {
       throw err

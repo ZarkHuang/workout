@@ -48,8 +48,21 @@
     <div class="card-apple space-y-4">
       <h3 class="font-bold text-slate-900 text-xs flex items-center gap-1.5 pb-1 border-b border-slate-100">
         <User class="w-4 h-4 text-slate-500" />
-        身體基礎數據
+        個人暱稱與身體基礎數據
       </h3>
+
+      <!-- Name / Nickname -->
+      <div>
+        <label class="block text-[11px] font-bold text-slate-600 mb-1">教練稱呼 / 會員暱稱</label>
+        <div class="relative">
+          <input
+            v-model="form.name"
+            type="text"
+            placeholder="例如：健身勇士、Zark"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500"
+          />
+        </div>
+      </div>
 
       <!-- Gender & Age -->
       <div class="grid grid-cols-2 gap-3">
@@ -210,6 +223,7 @@ const authStore = useAuthStore()
 const saving = ref(false)
 
 const form = reactive({
+  name: '',
   gender: 'MALE',
   age: 26,
   height_cm: 175,
@@ -231,6 +245,7 @@ function getGoalText(goal) {
 }
 
 function syncProfile() {
+  form.name = authStore.user?.name || ''
   const p = authStore.profile
   if (!p) return
   form.gender = p.gender || 'MALE'
