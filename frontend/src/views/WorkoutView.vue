@@ -21,11 +21,13 @@
       @click="$router.push('/active-workout')"
       class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all shadow-float"
     >
-      <div class="flex items-center gap-2.5">
-        <Flame class="w-5 h-5 text-white" />
-        <span class="text-xs font-bold">{{ workoutStore.sessionName }} 草稿編輯中 ({{ workoutStore.activeExercises.length }} 個動作)</span>
+      <div class="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+        <Flame class="w-5 h-5 text-white flex-shrink-0" />
+        <span class="text-xs font-bold truncate">{{ workoutStore.sessionName }} ({{ workoutStore.activeExercises.length }} 個動作)</span>
       </div>
-      <span class="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-lg">繼續填寫</span>
+      <span class="text-xs font-black bg-white/25 hover:bg-white/35 px-3 py-1.5 rounded-xl whitespace-nowrap flex-shrink-0 shadow-2xs">
+        繼續填寫
+      </span>
     </div>
 
     <!-- Navigation Tabs -->

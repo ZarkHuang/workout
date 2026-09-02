@@ -26,27 +26,30 @@
       <div class="grid grid-cols-2 gap-2.5 pt-1">
         <!-- Live Stopwatch Box (Manual Start / Pause / Smart Auto-start) -->
         <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3 flex flex-col justify-between">
-          <div class="text-[10px] font-bold text-slate-400 flex items-center justify-between">
-            <span>⏱️ 訓練計時 {{ sessionTimerRunning ? '(進行中)' : (sessionElapsedSeconds > 0 ? '(已暫停)' : '(準備中)') }}</span>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold text-slate-400">⏱️ 訓練計時</span>
+            <button
+              @click="toggleSessionTimer"
+              class="px-2 py-0.5 rounded-lg text-[10px] font-black flex items-center gap-1 active:scale-95 transition-all shadow-xs"
+              :class="sessionTimerRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (sessionElapsedSeconds > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20')"
+            >
+              <component :is="sessionTimerRunning ? Pause : Play" class="w-2.5 h-2.5" />
+              <span>{{ sessionTimerRunning ? '暫停' : (sessionElapsedSeconds > 0 ? '繼續' : '開始') }}</span>
+            </button>
           </div>
-          <div class="flex items-center justify-between mt-1">
+          <div class="mt-1 flex items-baseline gap-1.5">
             <div
               class="text-xl font-black font-mono tracking-wider"
-              :class="sessionTimerRunning ? 'text-emerald-400 animate-pulse' : 'text-slate-300'"
+              :class="sessionTimerRunning ? 'text-emerald-400 animate-pulse' : (sessionElapsedSeconds > 0 ? 'text-white' : 'text-slate-400')"
             >
               {{ formattedSessionTime }}
             </div>
-            <button
-              @click="toggleSessionTimer"
-              class="px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 active:scale-95 transition-all"
-              :class="sessionTimerRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'"
-            >
-              <component :is="sessionTimerRunning ? Pause : Play" class="w-3.5 h-3.5" />
-              <span>{{ sessionTimerRunning ? '暫停' : (sessionElapsedSeconds > 0 ? '繼續' : '開始計時') }}</span>
-            </button>
+            <span class="text-[9px] font-bold" :class="sessionTimerRunning ? 'text-emerald-400' : 'text-slate-500'">
+              {{ sessionTimerRunning ? '計時中' : (sessionElapsedSeconds > 0 ? '已暫停' : '準備就緒') }}
+            </span>
           </div>
-          <div class="text-[10px] text-slate-500 mt-1">
-            {{ sessionTimerRunning ? `已累計約 ${Math.max(1, Math.round(sessionElapsedSeconds / 60))} 分鐘` : (sessionElapsedSeconds > 0 ? '計時已暫停' : '準備好後點擊開始計時') }}
+          <div class="text-[10px] text-slate-400 mt-0.5">
+            {{ sessionTimerRunning ? `累計約 ${Math.max(1, Math.round(sessionElapsedSeconds / 60))} 分鐘` : (sessionElapsedSeconds > 0 ? '點擊繼續' : '點擊開始開練') }}
           </div>
         </div>
 
