@@ -43,15 +43,22 @@
           </div>
         </div>
 
-        <!-- Date Picker Box -->
-        <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3 flex flex-col justify-between">
-          <label class="text-[10px] font-bold text-slate-400 block">📅 訓練日期</label>
+        <!-- Date Picker Box (Clean, responsive, never overflows) -->
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3 flex flex-col justify-between relative overflow-hidden group cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <div class="text-[10px] font-bold text-slate-400 flex items-center justify-between">
+            <span>📅 訓練日期</span>
+            <Calendar class="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+          <div class="text-sm font-black text-white mt-1 truncate">
+            {{ formattedDateDisplay }}
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5">點擊更換日期</div>
+          <!-- Transparent native date picker overlay -->
           <input
             v-model="workoutStore.sessionDate"
             type="date"
-            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 mt-1"
+            class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
           />
-          <div class="text-[10px] text-slate-500 mt-0.5">可補填過去課表</div>
         </div>
       </div>
 
@@ -245,26 +252,6 @@
       </div>
     </div>
 
-    <!-- Fixed Bottom Bar for Fast Action (Hidden BottomNav ensures NO overlap!) -->
-    <div class="fixed bottom-0 left-0 right-0 p-3.5 bg-white/95 backdrop-blur-md border-t border-slate-200/80 z-50 max-w-lg mx-auto pb-safe">
-      <div class="flex items-center gap-2">
-        <button
-          @click="showAddExerciseModal = true"
-          class="py-3 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1"
-        >
-          <Plus class="w-4 h-4 text-emerald-600" />
-          <span>加動作</span>
-        </button>
-        <button
-          @click="openSettlementModal"
-          class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-600 hover:to-emerald-700 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-        >
-          <Trophy class="w-4 h-4 text-amber-300" />
-          <span>🏁 完成並結束訓練</span>
-        </button>
-      </div>
-    </div>
-
     <!-- Add Exercise Modal -->
     <div
       v-if="showAddExerciseModal"
@@ -379,7 +366,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import confetti from 'canvas-confetti'
 import {
-  Flame, Dumbbell, Trash2, Lightbulb, Plus, X, Check, Trophy, Play, Pause
+  Flame, Dumbbell, Trash2, Lightbulb, Plus, X, Check, Trophy, Play, Pause, Calendar
 } from 'lucide-vue-next'
 import { useWorkoutStore } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
@@ -399,6 +386,19 @@ const sessionElapsedSeconds = ref(0)
 const sessionTimerRunning = ref(true)
 let sessionTicker = null
 let exerciseTimerInterval = null
+
+const formattedDateDisplay = computed(() => {
+  if (!workoutStore.sessionDate) return '今日訓練'
+  try {
+    const d = new Date(workoutStore.sessionDate + 'T00:00:00')
+    if (isNaN(d.getTime())) return workoutStore.sessionDate
+    const isCurrent = workoutStore.sessionDate === new Date().toISOString().substring(0, 10)
+    const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六']
+    return `${d.getMonth() + 1}月${d.getDate()}日 (${weekdays[d.getDay()]})${isCurrent ? ' 📍' : ''}`
+  } catch (e) {
+    return workoutStore.sessionDate
+  }
+})
 
 const formattedSessionTime = computed(() => {
   const h = Math.floor(sessionElapsedSeconds.value / 3600)

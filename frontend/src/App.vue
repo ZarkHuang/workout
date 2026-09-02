@@ -43,8 +43,8 @@
     <!-- Global Floating Rest Timer -->
     <RestTimerWidget />
 
-    <!-- Bottom Navigation Bar for Mobile PWA (hidden during active workout) -->
-    <BottomNav v-if="route.path !== '/active-workout'" />
+    <!-- Bottom Navigation Bar for Mobile PWA -->
+    <BottomNav />
   </div>
 </template>
 
