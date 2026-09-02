@@ -200,9 +200,18 @@
             <div class="text-xs font-bold text-slate-800">{{ s.session_name }}</div>
             <div class="text-[10px] text-slate-400">{{ formatDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
           </div>
-          <div class="text-right">
-            <div class="text-xs font-black text-brand-700">{{ s.total_volume_kg }} kg</div>
-            <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <div class="text-xs font-black text-brand-700">{{ s.total_volume_kg }} kg</div>
+              <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+            </div>
+            <button
+              @click="handleDeleteRecentSession(s.id)"
+              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
+              title="刪除紀錄"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -316,7 +325,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList
+  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList, Trash2
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkoutStore } from '@/stores/workout'
@@ -441,6 +450,18 @@ async function fetchRecentSessions() {
     recentSessions.value = res.data
   } catch (err) {
     console.error('Failed to fetch sessions:', err)
+  }
+}
+
+async function handleDeleteRecentSession(id) {
+  if (!confirm('確定要刪除這筆訓練紀錄嗎？刪除後無法復原。')) return
+  try {
+    await workoutsAPI.deleteSession(id)
+    alert('已成功刪除該筆紀錄！')
+    await fetchRecentSessions()
+    await fetchRecovery()
+  } catch (err) {
+    alert('刪除失敗，請稍後重試')
   }
 }
 

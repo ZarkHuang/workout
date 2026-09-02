@@ -198,6 +198,22 @@ def record_session(
         "sets": sets_out
     }
 
+@router.delete("/sessions/{session_id}")
+def delete_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session = db.query(WorkoutSession).filter(
+        WorkoutSession.id == session_id,
+        WorkoutSession.user_id == current_user.id
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="找不到此筆訓練紀錄")
+    db.delete(session)
+    db.commit()
+    return {"message": "訓練紀錄已成功刪除"}
+
 # 3. Muscle Recovery Heatmap Calculation
 @router.get("/recovery", response_model=MuscleRecoveryOverview)
 def get_muscle_recovery_status(
@@ -361,3 +377,69 @@ def get_strength_trends(
     # Filter out empty lists
     active_trends = {k: v for k, v in trends.items() if len(v) > 0}
     return {"trends": active_trends}
+
+# 5. Weekly Comparison Dashboard & 90-Day Rolling Cleanup
+@router.get("/weekly-comparison")
+def get_weekly_comparison(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    now = datetime.now(timezone.utc)
+    # Start of this week (Monday 00:00 UTC)
+    start_of_this_week = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_last_week = start_of_this_week - timedelta(days=7)
+
+    this_week_sessions = db.query(WorkoutSession).filter(
+        WorkoutSession.user_id == current_user.id,
+        WorkoutSession.created_at >= start_of_this_week
+    ).all()
+
+    last_week_sessions = db.query(WorkoutSession).filter(
+        WorkoutSession.user_id == current_user.id,
+        WorkoutSession.created_at >= start_of_last_week,
+        WorkoutSession.created_at < start_of_this_week
+    ).all()
+
+    this_vol = sum(s.total_volume_kg for s in this_week_sessions)
+    last_vol = sum(s.total_volume_kg for s in last_week_sessions)
+    this_mins = sum(s.duration_minutes for s in this_week_sessions)
+    last_mins = sum(s.duration_minutes for s in last_week_sessions)
+
+    if last_vol > 0:
+        vol_change_pct = round(((this_vol - last_vol) / last_vol) * 100, 1)
+    else:
+        vol_change_pct = 100.0 if this_vol > 0 else 0.0
+
+    return {
+        "this_week": {
+            "volume_kg": round(this_vol, 1),
+            "sessions_count": len(this_week_sessions),
+            "duration_minutes": this_mins,
+            "start_date": start_of_this_week.strftime("%m/%d")
+        },
+        "last_week": {
+            "volume_kg": round(last_vol, 1),
+            "sessions_count": len(last_week_sessions),
+            "duration_minutes": last_mins,
+            "start_date": start_of_last_week.strftime("%m/%d")
+        },
+        "volume_change_pct": vol_change_pct,
+        "is_progressing": vol_change_pct >= 0
+    }
+
+@router.post("/cleanup-90d-rolling")
+def cleanup_old_workout_data(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+    old_sessions = db.query(WorkoutSession).filter(
+        WorkoutSession.user_id == current_user.id,
+        WorkoutSession.created_at < cutoff
+    ).all()
+    count = len(old_sessions)
+    for s in old_sessions:
+        db.delete(s)
+    db.commit()
+    return {"message": f"已完成 90 天滾動清理，清除了 {count} 筆歷史訓練紀錄！"}
+

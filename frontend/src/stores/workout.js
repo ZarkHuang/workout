@@ -275,8 +275,12 @@ export const useWorkoutStore = defineStore('workout', () => {
 
     try {
       const res = await workoutsAPI.createSession(sessionPayload)
-      // Reset state
+      // Reset state completely
       isWorkoutActive.value = false
+      activeExercises.value = []
+      routineId.value = null
+      startTime.value = null
+      sessionName.value = '今日自訂訓練'
       stopRestTimer()
       localStorage.removeItem('fitpulse_active_workout')
       return res.data
@@ -287,8 +291,11 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   function cancelWorkout() {
     isWorkoutActive.value = false
-    stopRestTimer()
     activeExercises.value = []
+    routineId.value = null
+    startTime.value = null
+    sessionName.value = '今日自訂訓練'
+    stopRestTimer()
     localStorage.removeItem('fitpulse_active_workout')
   }
 

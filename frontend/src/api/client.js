@@ -62,8 +62,11 @@ export const workoutsAPI = {
   deleteRoutine: (id) => client.delete(`/workouts/routines/${id}`),
   getSessions: (params) => client.get('/workouts/sessions', { params }),
   createSession: (data) => client.post('/workouts/sessions', data),
+  deleteSession: (id) => client.delete(`/workouts/sessions/${id}`),
   getRecoveryStatus: () => client.get('/workouts/recovery'),
   getStrengthTrends: () => client.get('/workouts/stats/1rm-trends'),
+  getWeeklyComparison: () => client.get('/workouts/weekly-comparison'),
+  cleanup90d: () => client.post('/workouts/cleanup-90d-rolling'),
 }
 
 // Nutrition APIs

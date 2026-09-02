@@ -43,18 +43,20 @@
     <!-- Global Floating Rest Timer -->
     <RestTimerWidget />
 
-    <!-- Bottom Navigation Bar for Mobile PWA -->
-    <BottomNav />
+    <!-- Bottom Navigation Bar for Mobile PWA (hidden during active workout) -->
+    <BottomNav v-if="route.path !== '/active-workout'" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import RestTimerWidget from '@/components/RestTimerWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const deferredPrompt = ref(null)
 const showInstallPrompt = ref(false)

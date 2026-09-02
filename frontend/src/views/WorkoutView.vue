@@ -182,10 +182,47 @@
       </div>
     </div>
 
-    <!-- TAB 3: History Logs -->
-    <div v-if="activeTab === 'history'" class="space-y-3">
+    <!-- TAB 3: History Logs & Weekly Comparison -->
+    <div v-if="activeTab === 'history'" class="space-y-3.5">
+      <!-- Weekly Comparison Highlight Banner -->
+      <div v-if="weeklyStats" class="card-apple bg-gradient-to-br from-slate-900 to-slate-800 text-white border-0 shadow-lg p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-black text-white">📊 本週 vs 上週訓練對比</span>
+          </div>
+          <span
+            class="text-[10px] font-black px-2 py-0.5 rounded-full"
+            :class="weeklyStats.volume_change_pct >= 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'"
+          >
+            容量 {{ weeklyStats.volume_change_pct >= 0 ? `+${weeklyStats.volume_change_pct}% 🔥` : `${weeklyStats.volume_change_pct}% 📉` }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <div class="bg-white/10 rounded-xl p-2.5">
+            <div class="text-[10px] text-slate-400 font-medium">本週 ({{ weeklyStats.this_week.start_date }} 起)</div>
+            <div class="text-base font-black text-emerald-400 mt-0.5">
+              {{ weeklyStats.this_week.volume_kg.toLocaleString() }} <span class="text-[10px] font-normal text-slate-400">kg</span>
+            </div>
+            <div class="text-[10px] text-slate-300 mt-0.5">
+              練 {{ weeklyStats.this_week.sessions_count }} 天 · {{ weeklyStats.this_week.duration_minutes }} 分鐘
+            </div>
+          </div>
+
+          <div class="bg-white/10 rounded-xl p-2.5">
+            <div class="text-[10px] text-slate-400 font-medium">上週 ({{ weeklyStats.last_week.start_date }} 起)</div>
+            <div class="text-base font-black text-slate-300 mt-0.5">
+              {{ weeklyStats.last_week.volume_kg.toLocaleString() }} <span class="text-[10px] font-normal text-slate-400">kg</span>
+            </div>
+            <div class="text-[10px] text-slate-300 mt-0.5">
+              練 {{ weeklyStats.last_week.sessions_count }} 天 · {{ weeklyStats.last_week.duration_minutes }} 分鐘
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="historySessions.length === 0" class="card-apple text-center py-8 text-slate-400 text-xs">
-        尚無訓練歷史紀錄
+        尚無訓練歷史紀錄，點擊上方按鈕開始第一堂訓練！
       </div>
 
       <div
@@ -193,28 +230,54 @@
         :key="s.id"
         class="card-apple space-y-2.5"
       >
-        <div class="flex items-center justify-between">
+        <div class="flex items-start justify-between">
           <div>
             <h3 class="text-xs font-bold text-slate-900">{{ s.session_name }}</h3>
             <div class="text-[10px] text-slate-400">{{ formatFullDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
           </div>
-          <div class="text-right">
-            <div class="text-xs font-black text-brand-700">總容量 {{ s.total_volume_kg }} kg</div>
-            <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <div class="text-xs font-black text-brand-700">總容量 {{ s.total_volume_kg }} kg</div>
+              <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+            </div>
+            <button
+              @click="handleDeleteSession(s.id)"
+              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
+              title="刪除此筆日誌"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
           </div>
         </div>
 
         <!-- Sets breakdown -->
-        <div class="bg-slate-50 rounded-xl p-2 space-y-1">
+        <div class="bg-slate-50 rounded-xl p-2.5 space-y-1.5">
           <div
             v-for="(st, idx) in s.sets"
             :key="st.id"
-            class="text-[11px] text-slate-600 flex items-center justify-between border-b border-slate-100/60 pb-0.5 last:border-0 last:pb-0"
+            class="text-[11px] text-slate-700 flex items-center justify-between border-b border-slate-200/50 pb-1 last:border-0 last:pb-0"
           >
             <span>{{ st.exercise_name }} (第 {{ st.set_number }} 組)</span>
-            <span class="font-bold text-slate-800">{{ st.weight_kg }}kg × {{ st.reps }}次 <span v-if="st.estimated_1rm" class="text-[10px] text-brand-600 font-normal">(1RM: {{ st.estimated_1rm }}kg)</span></span>
+            <span class="font-bold text-slate-900">
+              {{ st.weight_kg }}kg × {{ st.reps }}次
+              <span v-if="st.estimated_1rm" class="text-[10px] text-brand-600 font-semibold ml-1">(1RM: {{ st.estimated_1rm }}kg)</span>
+            </span>
           </div>
         </div>
+      </div>
+
+      <!-- 90-Day Rolling Cleanup Banner -->
+      <div class="p-3 rounded-2xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-between mt-2">
+        <div class="text-[11px] text-slate-500">
+          <span class="font-bold text-slate-700">90 天滾動歸檔：</span>
+          保留近 3 個月完整組數，1RM 永久保留。
+        </div>
+        <button
+          @click="handle90dCleanup"
+          class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 text-slate-700 text-[10px] font-bold border border-slate-200 shadow-2xs active:scale-95 whitespace-nowrap"
+        >
+          清理舊日誌
+        </button>
       </div>
     </div>
 
@@ -311,6 +374,7 @@ const activeTab = ref('routines')
 const routines = ref([])
 const allExercises = ref([])
 const historySessions = ref([])
+const weeklyStats = ref(null)
 
 const searchQuery = ref('')
 const selectedMuscleFilter = ref('ALL')
@@ -369,6 +433,18 @@ async function fetchHistory() {
     historySessions.value = res.data
   } catch (err) {
     console.error('Failed to fetch history:', err)
+  }
+}
+
+async function handleDeleteSession(id) {
+  if (!confirm('確定要刪除這筆訓練紀錄嗎？刪除後無法復原。')) return
+  try {
+    await workoutsAPI.deleteSession(id)
+    alert('已成功刪除該筆紀錄！')
+    await fetchHistory()
+    await fetchWeeklyStats()
+  } catch (err) {
+    alert('刪除失敗，請稍後重試')
   }
 }
 
@@ -439,9 +515,31 @@ function addExerciseToActive(ex) {
   router.push('/active-workout')
 }
 
+async function fetchWeeklyStats() {
+  try {
+    const res = await workoutsAPI.getWeeklyComparison()
+    weeklyStats.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch weekly stats:', err)
+  }
+}
+
+async function handle90dCleanup() {
+  if (!confirm('確定要執行 90 天滾動歸檔嗎？超過 3 個月的訓練日誌將會被清理以釋放資料庫空間，但 1RM 歷史最高紀錄將會永久保留。')) return
+  try {
+    const res = await workoutsAPI.cleanup90d()
+    alert(res.data.message || '90 天滾動清理完成！')
+    await fetchHistory()
+    await fetchWeeklyStats()
+  } catch (err) {
+    alert('清理失敗，請稍後重試')
+  }
+}
+
 onMounted(() => {
   fetchRoutines()
   fetchExercises()
   fetchHistory()
+  fetchWeeklyStats()
 })
 </script>
