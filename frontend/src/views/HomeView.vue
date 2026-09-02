@@ -17,42 +17,53 @@
       </div>
     </div>
 
-    <!-- 2. Ongoing Workout Draft Alert Banner (if active) -->
+    <!-- 2. Ongoing Workout Active Card (Shows when workout is in progress / draft loaded) -->
     <div
       v-if="workoutStore.activeExercises.length > 0"
-      class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-float flex items-center justify-between transition-all"
+      class="p-4 rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white shadow-float space-y-3 relative overflow-hidden"
     >
-      <div
-        @click="$router.push('/active-workout')"
-        class="flex items-center gap-3 cursor-pointer flex-1"
-      >
-        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-          <Flame class="w-5 h-5 text-white" />
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-black">
+            <Flame class="w-6 h-6 text-amber-300 animate-pulse" />
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-emerald-200">🔥 今日訓練進行中 / 草稿已載入</div>
+            <h2 class="text-base font-black text-white">{{ workoutStore.sessionName }}</h2>
+          </div>
         </div>
-        <div>
-          <div class="text-[11px] font-medium text-emerald-100">訓練日誌草稿 ({{ workoutStore.activeExercises.length }} 個動作)</div>
-          <div class="text-sm font-bold">{{ workoutStore.sessionName }}</div>
-        </div>
+        <span class="text-[10px] bg-white/20 px-2.5 py-1 rounded-full font-bold text-emerald-100">
+          {{ workoutStore.activeExercises.length }} 個動作
+        </span>
       </div>
-      <div class="flex items-center gap-1.5">
+
+      <div class="text-xs text-emerald-100/90 leading-relaxed bg-black/20 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+        <span>課表已就緒，隨時可進場開練或新增動作！</span>
+      </div>
+
+      <div class="flex items-center gap-2 pt-0.5">
         <button
           @click="$router.push('/active-workout')"
-          class="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl"
+          class="flex-1 py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-black shadow-md shadow-black/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
         >
-          繼續填寫
+          <Play class="w-4 h-4 text-emerald-700" />
+          <span>👉 進入訓練 / 繼續打卡</span>
         </button>
         <button
-          @click.stop="workoutStore.cancelWorkout()"
-          class="p-1.5 rounded-lg bg-white/10 hover:bg-rose-500 text-white transition-colors"
-          title="清空草稿"
+          @click="workoutStore.cancelWorkout()"
+          class="py-3 px-3 rounded-xl bg-white/15 hover:bg-rose-600 text-white text-xs font-bold active:scale-95 transition-all"
+          title="放棄當前訓練並重新排課"
         >
-          <X class="w-4 h-4" />
+          放棄重新排課
         </button>
       </div>
     </div>
 
-    <!-- 3. AI Smart Workout Recommendation Hero Button -->
-    <div class="p-4 rounded-2xl bg-gradient-to-br from-brand-500 via-emerald-600 to-teal-700 text-white shadow-float relative overflow-hidden">
+    <!-- 3. AI Smart Workout Recommendation Hero Button (Shows ONLY when no active workout) -->
+    <div
+      v-else
+      class="p-4 rounded-2xl bg-gradient-to-br from-brand-500 via-emerald-600 to-teal-700 text-white shadow-float relative overflow-hidden"
+    >
       <div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
       
       <div class="flex items-start justify-between mb-2">
@@ -280,41 +291,149 @@
           </div>
         </div>
 
-        <!-- Exercises List -->
-        <div class="space-y-2">
-          <div class="text-[11px] font-bold text-slate-500">🏋️ 今日推薦動作清單：</div>
+        <!-- Editable Exercises List -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-500">🏋️ 推薦動作清單 (可自由增刪與修改組數)：</span>
+            <button
+              @click="openAddExercisePicker"
+              class="text-[11px] text-emerald-600 hover:text-emerald-700 font-black flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200/60 active:scale-95 transition-all"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>加動作</span>
+            </button>
+          </div>
+
+          <div v-if="recommendedRoutine.exercises?.length === 0" class="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            清單目前為空，請點擊上方「加動作」挑選！
+          </div>
+
           <div
             v-for="(ex, i) in recommendedRoutine.exercises"
             :key="i"
-            class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-start justify-between"
+            class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5 transition-all"
           >
-            <div>
-              <div class="text-xs font-bold text-slate-800">{{ i + 1 }}. {{ ex.exercise_name }}</div>
-              <div class="text-[10px] text-slate-500 mt-0.5">
-                {{ ex.target_sets }} 組 × {{ ex.target_reps }} 次
-                <span v-if="ex.suggested_weight_kg"> · 建議 {{ ex.suggested_weight_kg }}kg</span>
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center">
+                    {{ i + 1 }}
+                  </span>
+                  <span>{{ ex.exercise_name }}</span>
+                </div>
+                <div v-if="ex.notes" class="text-[10px] text-brand-700 mt-0.5 ml-6 italic">{{ ex.notes }}</div>
               </div>
-              <div v-if="ex.notes" class="text-[10px] text-brand-700 mt-1 italic">{{ ex.notes }}</div>
+              <div class="flex items-center gap-1.5">
+                <span class="badge-emerald text-[9px]">{{ ex.target_muscle_group }}</span>
+                <button
+                  @click="removeExerciseFromRecommendation(i)"
+                  class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
+                  title="移除此動作"
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-            <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
+
+            <!-- Inline Set and Reps Editor -->
+            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 ml-6">
+              <!-- Sets Stepper -->
+              <div class="flex items-center justify-between bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                <span class="text-[10px] text-slate-400 font-bold">組數:</span>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    @click="ex.target_sets = Math.max(1, (Number(ex.target_sets) || 3) - 1)"
+                    class="w-5 h-5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center active:scale-90"
+                  >
+                    -
+                  </button>
+                  <span class="text-xs font-black text-slate-900 w-4 text-center">{{ ex.target_sets }}</span>
+                  <button
+                    @click="ex.target_sets = (Number(ex.target_sets) || 3) + 1"
+                    class="w-5 h-5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center active:scale-90"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <!-- Reps Input -->
+              <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">次數:</span>
+                <input
+                  v-model="ex.target_reps"
+                  type="text"
+                  class="w-full text-center text-xs font-black text-slate-900 focus:outline-none"
+                  placeholder="如 10 或 8-12"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="pt-2 flex items-center gap-2">
-          <button
-            @click="adoptAIRoutine"
-            class="flex-1 py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <ClipboardList class="w-4 h-4" />
-            <span>👉 帶入此課表填寫紀錄</span>
-          </button>
+        <div class="pt-2 space-y-2">
+          <div class="flex items-center gap-2">
+            <button
+              @click="saveAsCustomRoutine"
+              class="py-3 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1"
+              title="儲存至常用課表"
+            >
+              <BookmarkPlus class="w-4 h-4 text-brand-600" />
+              <span>存為常用課表</span>
+            </button>
+            <button
+              @click="adoptAIRoutine"
+              :disabled="recommendedRoutine.exercises?.length === 0"
+              class="flex-1 py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-black text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+            >
+              <ClipboardList class="w-4 h-4" />
+              <span>👉 採用並進入打卡</span>
+            </button>
+          </div>
           <button
             @click="showAIModal = false"
-            class="py-3 px-4 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 active:scale-95"
+            class="w-full py-2.5 text-center text-slate-400 hover:text-slate-600 font-medium text-xs"
           >
             關閉
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Exercise Picker for Adding to AI Recommendation -->
+    <div
+      v-if="showAddExerciseModal"
+      class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto space-y-3 shadow-2xl">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h3 class="font-black text-slate-900 text-base">新增動作至推薦課表</h3>
+          <button @click="showAddExerciseModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <input
+          v-model="exerciseSearch"
+          type="text"
+          placeholder="搜尋動作（如：臥推、引體向上、肩推）..."
+          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
+        />
+
+        <div class="max-h-60 overflow-y-auto space-y-1.5">
+          <div
+            v-for="ex in filteredExerciseLibrary"
+            :key="ex.id"
+            @click="addExerciseToRecommendation(ex)"
+            class="p-2.5 rounded-xl bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 cursor-pointer flex items-center justify-between transition-colors"
+          >
+            <div>
+              <div class="text-xs font-bold text-slate-900">{{ ex.name }}</div>
+              <div class="text-[10px] text-slate-400">{{ ex.equipment }}</div>
+            </div>
+            <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -325,7 +444,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList, Trash2
+  Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList, Trash2, BookmarkPlus, Plus
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkoutStore } from '@/stores/workout'
@@ -346,6 +465,10 @@ const recentSessions = ref([])
 const showAIModal = ref(false)
 const recommendedRoutine = ref(null)
 const loadingAI = ref(false)
+
+const showAddExerciseModal = ref(false)
+const exerciseSearch = ref('')
+const exerciseLibrary = ref([])
 
 const selectedSplit = ref('AUTO')
 const selectedSubFocus = ref('DEFAULT')
@@ -494,16 +617,89 @@ async function openAIRecommendModal(customSplit = null, customSubFocus = null) {
   }
 }
 
+const filteredExerciseLibrary = computed(() => {
+  if (!exerciseSearch.value) return exerciseLibrary.value
+  const q = exerciseSearch.value.toLowerCase()
+  return exerciseLibrary.value.filter(e => e.name.toLowerCase().includes(q) || (e.name_en && e.name_en.toLowerCase().includes(q)))
+})
+
+async function openAddExercisePicker() {
+  if (exerciseLibrary.value.length === 0) {
+    try {
+      const res = await exercisesAPI.list()
+      exerciseLibrary.value = res.data
+    } catch (e) {}
+  }
+  exerciseSearch.value = ''
+  showAddExerciseModal.value = true
+}
+
+function addExerciseToRecommendation(ex) {
+  if (!recommendedRoutine.value) return
+  if (!recommendedRoutine.value.exercises) {
+    recommendedRoutine.value.exercises = []
+  }
+  recommendedRoutine.value.exercises.push({
+    exercise_name: ex.name,
+    target_muscle_group: ex.target_muscle_group,
+    target_sets: 3,
+    target_reps: '10-12',
+    suggested_weight_kg: 0,
+    notes: '手動新增動作'
+  })
+  showAddExerciseModal.value = false
+}
+
+function removeExerciseFromRecommendation(index) {
+  if (!recommendedRoutine.value || !recommendedRoutine.value.exercises) return
+  recommendedRoutine.value.exercises.splice(index, 1)
+}
+
+async function saveAsCustomRoutine() {
+  if (!recommendedRoutine.value || !recommendedRoutine.value.exercises?.length) {
+    alert('課表中至少需有 1 個動作才能儲存！')
+    return
+  }
+
+  try {
+    const exRes = await exercisesAPI.list()
+    const allEx = exRes.data
+
+    const routineExercises = []
+    recommendedRoutine.value.exercises.forEach((item, idx) => {
+      let match = allEx.find(e => e.name === item.exercise_name || item.exercise_name.includes(e.name))
+      if (!match) {
+        match = allEx.find(e => e.target_muscle_group === item.target_muscle_group) || allEx[0]
+      }
+      routineExercises.push({
+        exercise_id: match.id,
+        target_sets: Number(item.target_sets) || 3,
+        target_reps: parseInt(item.target_reps) || 10
+      })
+    })
+
+    await workoutsAPI.createRoutine({
+      title: recommendedRoutine.value.routine_title || '自訂推薦課表',
+      target_split: selectedSplit.value === 'AUTO' ? 'FULL_BODY' : selectedSplit.value,
+      description: recommendedRoutine.value.rationale || '由 AI 智慧排課微調產生',
+      exercises: routineExercises
+    })
+
+    alert('🎉 已成功儲存至「訓練中樞 ➔ 常用課表」！')
+  } catch (err) {
+    alert('儲存課表失敗，請稍後重試')
+  }
+}
+
 function startEmptyWorkout() {
   workoutStore.startWorkout('今日自由訓練')
   router.push('/active-workout')
 }
 
 async function adoptAIRoutine() {
-  if (!recommendedRoutine.value) return
+  if (!recommendedRoutine.value || !recommendedRoutine.value.exercises?.length) return
   showAIModal.value = false
 
-  // Fetch all exercises to map names to exercise IDs
   try {
     const exRes = await exercisesAPI.list()
     const allEx = exRes.data
@@ -511,7 +707,6 @@ async function adoptAIRoutine() {
     workoutStore.startWorkout(recommendedRoutine.value.routine_title)
     
     for (const item of recommendedRoutine.value.exercises) {
-      // Find matching exercise or first match
       let match = allEx.find(e => e.name === item.exercise_name || item.exercise_name.includes(e.name))
       if (!match) {
         match = allEx.find(e => e.target_muscle_group === item.target_muscle_group) || allEx[0]
@@ -523,7 +718,7 @@ async function adoptAIRoutine() {
       for (let i = 1; i <= numSets; i++) {
         sets.push({
           set_number: i,
-          weight_kg: item.suggested_weight_kg || 0,
+          weight_kg: Number(item.suggested_weight_kg) || 0,
           reps: numReps,
           rpe: 8.0,
           is_completed: false,
@@ -536,6 +731,8 @@ async function adoptAIRoutine() {
         exercise_id: match.id,
         name: item.exercise_name,
         target_muscle_group: item.target_muscle_group,
+        timerStatus: 'IDLE',
+        elapsedSeconds: 0,
         sets
       })
     }

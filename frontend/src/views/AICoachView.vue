@@ -271,6 +271,8 @@ async function adoptRoutine(routine) {
         exercise_id: match.id,
         name: item.exercise_name,
         target_muscle_group: item.target_muscle_group,
+        timerStatus: 'IDLE',
+        elapsedSeconds: 0,
         sets
       })
     }

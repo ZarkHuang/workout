@@ -24,22 +24,29 @@
 
       <!-- Live Session Stopwatch & Date Selector (Clean Grid, No Overlap) -->
       <div class="grid grid-cols-2 gap-2.5 pt-1">
-        <!-- Live Stopwatch Box -->
+        <!-- Live Stopwatch Box (Manual Start / Pause / Smart Auto-start) -->
         <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3 flex flex-col justify-between">
           <div class="text-[10px] font-bold text-slate-400 flex items-center justify-between">
-            <span>⏱️ 訓練計時 (自走)</span>
+            <span>⏱️ 訓練計時 {{ sessionTimerRunning ? '(進行中)' : (sessionElapsedSeconds > 0 ? '(已暫停)' : '(準備中)') }}</span>
+          </div>
+          <div class="flex items-center justify-between mt-1">
+            <div
+              class="text-xl font-black font-mono tracking-wider"
+              :class="sessionTimerRunning ? 'text-emerald-400 animate-pulse' : 'text-slate-300'"
+            >
+              {{ formattedSessionTime }}
+            </div>
             <button
               @click="toggleSessionTimer"
-              class="text-[10px] text-emerald-400 hover:text-emerald-300 underline font-semibold"
+              class="px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 active:scale-95 transition-all"
+              :class="sessionTimerRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'"
             >
-              {{ sessionTimerRunning ? '暫停' : '繼續' }}
+              <component :is="sessionTimerRunning ? Pause : Play" class="w-3.5 h-3.5" />
+              <span>{{ sessionTimerRunning ? '暫停' : (sessionElapsedSeconds > 0 ? '繼續' : '開始計時') }}</span>
             </button>
           </div>
-          <div class="text-xl font-black font-mono text-emerald-400 mt-1 tracking-wider">
-            {{ formattedSessionTime }}
-          </div>
-          <div class="text-[10px] text-slate-500 mt-0.5">
-            約 {{ Math.max(1, Math.round(sessionElapsedSeconds / 60)) }} 分鐘
+          <div class="text-[10px] text-slate-500 mt-1">
+            {{ sessionTimerRunning ? `已累計約 ${Math.max(1, Math.round(sessionElapsedSeconds / 60))} 分鐘` : (sessionElapsedSeconds > 0 ? '計時已暫停' : '準備好後點擊開始計時') }}
           </div>
         </div>
 
@@ -109,7 +116,7 @@
             <!-- Single Exercise Stopwatch Controls -->
             <div class="flex items-center gap-2 mt-2">
               <button
-                @click="workoutStore.toggleExerciseTimer(exIdx)"
+                @click="handleToggleExerciseTimer(exIdx)"
                 class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
                 :class="ex.timerStatus === 'RUNNING' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
               >
@@ -210,7 +217,7 @@
             <!-- Complete checkmark button -->
             <div class="col-span-2 flex justify-center">
               <button
-                @click="workoutStore.toggleSetComplete(exIdx, setIdx, 90)"
+                @click="handleToggleSetComplete(exIdx, setIdx)"
                 class="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90"
                 :class="set.is_completed ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-300' : 'bg-slate-200 text-slate-400 hover:bg-slate-300'"
                 title="標記完成並啟動休息計時"
@@ -383,7 +390,7 @@ const submitting = ref(false)
 
 // Session live stopwatch state
 const sessionElapsedSeconds = ref(0)
-const sessionTimerRunning = ref(true)
+const sessionTimerRunning = ref(false)
 let sessionTicker = null
 let exerciseTimerInterval = null
 
@@ -441,7 +448,26 @@ const filteredExerciseLibrary = computed(() => {
 })
 
 function toggleSessionTimer() {
+  if (!sessionTimerRunning.value && !workoutStore.startTime) {
+    workoutStore.startTime = new Date()
+  }
   sessionTimerRunning.value = !sessionTimerRunning.value
+}
+
+function handleToggleExerciseTimer(exIdx) {
+  if (!sessionTimerRunning.value) {
+    sessionTimerRunning.value = true
+    if (!workoutStore.startTime) workoutStore.startTime = new Date()
+  }
+  workoutStore.toggleExerciseTimer(exIdx)
+}
+
+function handleToggleSetComplete(exIdx, setIdx) {
+  if (!sessionTimerRunning.value) {
+    sessionTimerRunning.value = true
+    if (!workoutStore.startTime) workoutStore.startTime = new Date()
+  }
+  workoutStore.toggleSetComplete(exIdx, setIdx, 90)
 }
 
 function formatSeconds(secs) {
