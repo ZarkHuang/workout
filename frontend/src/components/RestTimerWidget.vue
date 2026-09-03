@@ -9,7 +9,7 @@
   >
     <div
       v-if="workoutStore.isTimerActive"
-      class="fixed bottom-20 left-4 right-4 max-w-lg mx-auto z-50 bg-slate-900/95 text-white rounded-2xl p-3.5 shadow-2xl backdrop-blur-md border border-slate-700/60 flex flex-col gap-2.5"
+      class="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,20px)+16px)] left-4 right-4 max-w-lg mx-auto z-50 bg-slate-900/95 text-white rounded-2xl p-3.5 shadow-2xl backdrop-blur-md border border-slate-700/60 flex flex-col gap-2.5"
     >
       <div class="flex items-center justify-between">
         <!-- Timer Info & Progress -->
