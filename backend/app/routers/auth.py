@@ -12,8 +12,10 @@ def calculate_tdee_and_macros(gender: str, age: int, height_cm: float, weight_kg
     """
     Calculate BMR using Mifflin-St Jeor equation and determine TDEE and Macro targets
     """
-    # 1. BMR
-    if gender.upper() == "FEMALE":
+    is_female = (str(gender).upper() == "FEMALE")
+    
+    # 1. BMR (Mifflin-St Jeor)
+    if is_female:
         bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
     else:
         bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
@@ -26,29 +28,35 @@ def calculate_tdee_and_macros(gender: str, age: int, height_cm: float, weight_kg
         "ACTIVE": 1.725,        # 高度活動 (每週 6-7 天)
         "VERY_ACTIVE": 1.9      # 極高強度 / 體力工作
     }
-    multiplier = activity_multipliers.get(activity_level.upper(), 1.55)
+    multiplier = activity_multipliers.get(str(activity_level).upper(), 1.55)
     tdee = bmr * multiplier
 
-    # 3. Adjust for Fitness Goal
-    goal_upper = goal.upper()
-    if goal_upper == "BULKING": # 增肌 (盈餘 250 kcal)
-        target_calories = int(tdee + 250)
-        protein_g = round(weight_kg * 2.0, 1) # 2.0g / kg
-        fat_cals = target_calories * 0.25
+    # 3. Adjust for Fitness Goal & Gender-Specific Macros
+    goal_upper = str(goal).upper()
+    if goal_upper == "BULKING": # 增肌 (盈餘 200~300 kcal)
+        surplus = 200 if is_female else 300
+        target_calories = int(tdee + surplus)
+        protein_g = round(weight_kg * (1.8 if is_female else 2.0), 1)
+        fat_pct = 0.28 if is_female else 0.25
+        fat_cals = target_calories * fat_pct
         fat_g = round(fat_cals / 9, 1)
         remaining_cals = target_calories - (protein_g * 4 + fat_cals)
         carbs_g = max(0, round(remaining_cals / 4, 1))
-    elif goal_upper == "CUTTING": # 減脂 (赤字 400 kcal)
-        target_calories = max(1200, int(tdee - 400))
-        protein_g = round(weight_kg * 2.2, 1) # 2.2g / kg 減脂保肌
-        fat_cals = target_calories * 0.20
+    elif goal_upper == "CUTTING": # 減脂 / 緊實 (赤字 300~400 kcal)
+        deficit = int(min(tdee * 0.20, 350)) if is_female else 400
+        min_cals = 1200 if is_female else 1500
+        target_calories = max(min_cals, int(tdee - deficit))
+        protein_g = round(weight_kg * (1.8 if is_female else 2.2), 1) # 女性 1.8g/kg, 男性 2.2g/kg
+        fat_pct = 0.28 if is_female else 0.22 # 女性需充足好油脂維持荷爾蒙
+        fat_cals = target_calories * fat_pct
         fat_g = round(fat_cals / 9, 1)
         remaining_cals = target_calories - (protein_g * 4 + fat_cals)
         carbs_g = max(0, round(remaining_cals / 4, 1))
     else: # MAINTENANCE 維持體態
         target_calories = int(tdee)
-        protein_g = round(weight_kg * 1.8, 1)
-        fat_cals = target_calories * 0.25
+        protein_g = round(weight_kg * (1.6 if is_female else 1.8), 1)
+        fat_pct = 0.28 if is_female else 0.25
+        fat_cals = target_calories * fat_pct
         fat_g = round(fat_cals / 9, 1)
         remaining_cals = target_calories - (protein_g * 4 + fat_cals)
         carbs_g = max(0, round(remaining_cals / 4, 1))
@@ -200,17 +208,13 @@ def update_profile(
         current_user.name = profile_data.name.strip()
         db.add(current_user)
 
-    update_fields = profile_data.model_dump(exclude_unset=True)
-    update_fields.pop("name", None) # Handled separately on User model
-    
-    # Check if we need to auto-recalculate target calories & macros
-    should_recalc = any(k in update_fields for k in ["gender", "age", "height_cm", "current_weight_kg", "fitness_goal", "activity_level"])
+    auto_recalc = profile_data.auto_recalculate is not False
     
     for key, value in update_fields.items():
-        if value is not None:
+        if value is not None and key != "auto_recalculate":
             setattr(profile, key, value)
             
-    if should_recalc and "target_calories" not in update_fields:
+    if auto_recalc:
         calc = calculate_tdee_and_macros(
             gender=profile.gender,
             age=profile.age,
@@ -223,6 +227,15 @@ def update_profile(
         profile.target_protein_g = calc["target_protein_g"]
         profile.target_carbs_g = calc["target_carbs_g"]
         profile.target_fat_g = calc["target_fat_g"]
+    else:
+        if profile_data.target_calories is not None:
+            profile.target_calories = profile_data.target_calories
+        if profile_data.target_protein_g is not None:
+            profile.target_protein_g = profile_data.target_protein_g
+        if profile_data.target_carbs_g is not None:
+            profile.target_carbs_g = profile_data.target_carbs_g
+        if profile_data.target_fat_g is not None:
+            profile.target_fat_g = profile_data.target_fat_g
 
     profile.updated_at = datetime.now(timezone.utc)
     db.commit()

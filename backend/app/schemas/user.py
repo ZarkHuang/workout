@@ -30,6 +30,7 @@ class UserProfileUpdate(BaseModel):
     target_protein_g: Optional[float] = None
     target_carbs_g: Optional[float] = None
     target_fat_g: Optional[float] = None
+    auto_recalculate: Optional[bool] = True
 
 class UserProfileOut(BaseModel):
     id: int

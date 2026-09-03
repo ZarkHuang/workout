@@ -1,44 +1,44 @@
 <template>
-  <div class="fixed inset-x-0 top-14 bottom-16 max-w-lg mx-auto flex flex-col bg-slate-50 overflow-hidden px-4">
-    <!-- Header (Fixed Top) -->
-    <div class="flex-shrink-0 flex items-center justify-between py-2.5 border-b border-slate-200/80 bg-slate-50 z-10">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand-500 to-teal-600 text-white flex items-center justify-center shadow-sm">
-          <Bot class="w-5 h-5" />
+  <div class="h-[calc(100dvh-3.5rem-4.5rem)] flex flex-col max-w-lg mx-auto px-3.5 pb-1 select-none overflow-hidden">
+    <!-- Clean Sub-Toolbar (No Duplicate App Navbar) -->
+    <div class="flex-shrink-0 flex items-center justify-between py-2 border-b border-slate-200/80 bg-slate-50">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-500 to-teal-600 text-white flex items-center justify-center shadow-xs">
+          <Bot class="w-4 h-4" />
         </div>
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="text-sm font-black text-slate-900">FitPulse AI 隨身教練</h1>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-black text-slate-900">Gemini AI 隨身健身顧問</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
-          <p class="text-[10px] text-slate-400">已同步你當前的身體恢復與熱量狀態</p>
+          <p class="text-[9px] text-slate-400">已即時連線你的體態與營養數據</p>
         </div>
       </div>
       <button
         @click="clearChat"
-        class="text-[11px] text-slate-400 hover:text-slate-600 px-2 py-1 rounded-lg hover:bg-slate-100"
+        class="text-[10px] font-bold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg bg-slate-200/70 hover:bg-slate-200 transition-colors"
       >
         清空重開
       </button>
     </div>
 
-    <!-- Chat Messages Scroll Area (Flex 1 Scroll) -->
-    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 py-2 min-h-0">
+    <!-- Chat Messages Scroll Area -->
+    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 py-2 min-h-0 select-text">
       <!-- Welcome Intro Bubble -->
       <div class="flex items-start gap-2">
-        <div class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
           <Bot class="w-4 h-4" />
         </div>
         <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-sm p-3.5 text-xs text-slate-700 leading-relaxed shadow-apple space-y-2 max-w-[85%]">
           <p>
             嗨，<strong>{{ authStore.user?.name || '朋友' }}</strong>！我是你的專屬健身 AI 教練。
           </p>
-          <p class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-100">
-            📊 <strong>即時狀態掌握：</strong><br />
-            · 目標：{{ getGoalText(authStore.profile?.fitness_goal) }}<br />
-            · 今日蛋白質已攝取：{{ nutritionStore.dailyProgress?.consumed_protein_g || 0 }}g / {{ authStore.profile?.target_protein_g || 140 }}g<br />
-            · 聊完如果想要排課，可以直接點擊按鈕【一鍵帶入訓練】！
-          </p>
+          <div class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 space-y-0.5">
+            <div class="font-bold text-slate-800">📊 即時體態掌握：</div>
+            <div>· 目標：<span class="font-bold text-emerald-700">{{ getGoalText(authStore.profile?.fitness_goal) }}</span></div>
+            <div>· 今日蛋白質已攝取：<span class="font-bold text-emerald-700">{{ nutritionStore.dailyProgress?.consumed_protein_g || 0 }}g</span> / {{ authStore.profile?.target_protein_g || 140 }}g</div>
+            <div>· 聊完如果想要排課，可以直接點擊按鈕【👉 採用此課表並立即開練】！</div>
+          </div>
         </div>
       </div>
 
@@ -52,13 +52,13 @@
         <!-- Avatar -->
         <div
           v-if="msg.role === 'assistant'"
-          class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5"
+          class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs"
         >
           <Bot class="w-4 h-4" />
         </div>
         <div
           v-else
-          class="w-7 h-7 rounded-xl bg-slate-800 text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold"
+          class="w-7 h-7 rounded-xl bg-slate-800 text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold shadow-2xs"
         >
           {{ (authStore.user?.name || 'U').charAt(0).toUpperCase() }}
         </div>
@@ -116,8 +116,8 @@
       </div>
     </div>
 
-    <!-- Quick Prompt Pills & Message Input Bar (Fixed Bottom) -->
-    <div class="flex-shrink-0 pt-1.5 pb-2 bg-slate-50 space-y-1.5 border-t border-slate-200/60">
+    <!-- Quick Prompt Pills & Message Input Bar (Fixed cleanly at bottom of chat area) -->
+    <div class="flex-shrink-0 pt-1.5 pb-2 bg-slate-50 space-y-1.5 border-t border-slate-200/80">
       <!-- Quick Prompt Pills -->
       <div class="flex gap-1.5 overflow-x-auto scrollbar-none py-0.5">
         <button
@@ -125,7 +125,7 @@
           :key="pill"
           @click="sendMessageWithText(pill)"
           :disabled="loading"
-          class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-700 whitespace-nowrap border border-slate-200/60 active:scale-95 transition-all"
+          class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200/80 text-slate-700 hover:bg-emerald-100 hover:text-emerald-800 whitespace-nowrap border border-slate-300/50 active:scale-95 transition-all"
         >
           {{ pill }}
         </button>
@@ -139,12 +139,12 @@
           placeholder="向 AI 詢問訓練菜單、換動作或飲食建議..."
           @keyup.enter="sendMessage"
           :disabled="loading"
-          class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs focus:outline-none focus:border-brand-500 shadow-apple"
+          class="flex-1 px-3.5 py-2.5 bg-white border border-slate-300/80 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500 shadow-2xs"
         />
         <button
           @click="sendMessage"
           :disabled="loading || !inputMessage.trim()"
-          class="w-10 h-10 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-40"
+          class="w-10 h-10 rounded-xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-40 flex-shrink-0"
         >
           <Send class="w-4 h-4" />
         </button>
@@ -180,14 +180,13 @@ const promptPills = [
 ]
 
 function getGoalText(goal) {
-  if (goal === 'BULKING') return '增肌期 (Bulking)'
-  if (goal === 'CUTTING') return '減脂期 (Cutting)'
-  return '體態維持 (Maintenance)'
+  if (goal === 'BULKING') return '增肌期'
+  if (goal === 'CUTTING') return '減脂緊實期'
+  return '體態維持'
 }
 
 function cleanMessageText(text) {
   if (!text) return ''
-  // Remove markdown json block if it was rendered into the card
   return text.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
 }
 
