@@ -78,19 +78,7 @@
         </div>
       </div>
 
-      <!-- Quick Preset Buttons (45s, 60s, 90s, 120s, 180s) -->
-      <div class="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 overflow-x-auto scrollbar-none">
-        <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">重設時間：</span>
-        <button
-          v-for="s in [30, 45, 60, 90, 120, 180]"
-          :key="s"
-          @click="workoutStore.setRestTimerDuration(s)"
-          class="px-2 py-0.5 rounded-lg text-[10px] font-black whitespace-nowrap transition-all"
-          :class="workoutStore.timerTotalSeconds === s ? 'bg-emerald-500 text-slate-950 font-black shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
-        >
-          {{ s }}s
-        </button>
-      </div>
+
 
       <!-- Notification Permission Prompt Bar (if not yet granted) -->
       <div

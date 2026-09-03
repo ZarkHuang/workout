@@ -73,18 +73,18 @@
       </div>
 
       <!-- Rest Timer Quick Setting Pill Selector -->
-      <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between">
-        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
-          <Timer class="w-3.5 h-3.5 text-emerald-400" />
-          <span>組間休息預設：</span>
+      <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-300 flex-shrink-0 whitespace-nowrap">
+          <Timer class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+          <span class="whitespace-nowrap">組間休息預設：</span>
         </div>
-        <div class="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        <div class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           <button
-            v-for="secs in [30, 45, 60, 90, 120, 180]"
+            v-for="secs in [30, 45, 60, 75, 90, 105, 120, 130, 140, 150, 180, 240]"
             :key="secs"
             @click="workoutStore.setDefaultRestSeconds(secs)"
-            class="px-2 py-0.5 rounded-lg text-[10px] font-black transition-all"
-            :class="workoutStore.defaultRestSeconds === secs ? 'bg-emerald-500 text-slate-950 shadow-sm font-black' : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 hover:text-white'"
+            class="px-2 py-0.5 rounded-lg text-[10px] font-black whitespace-nowrap transition-all flex-shrink-0"
+            :class="workoutStore.defaultRestSeconds === secs ? 'bg-emerald-500 text-slate-950 shadow-sm font-black ring-1 ring-emerald-300' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'"
           >
             {{ secs }}s
           </button>
