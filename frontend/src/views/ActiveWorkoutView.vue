@@ -480,7 +480,7 @@ function handleToggleExerciseTimer(exIdx) {
 }
 
 function handleToggleSetComplete(exIdx, setIdx) {
-  workoutStore.toggleSetComplete(exIdx, setIdx, 90)
+  workoutStore.toggleSetComplete(exIdx, setIdx)
   sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
 }
 

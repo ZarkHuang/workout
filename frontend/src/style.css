@@ -12,6 +12,12 @@
   input, textarea, [contenteditable] {
     user-select: text;
   }
+  
+  button, .btn, [role="button"] {
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
 }
 
 /* Custom modern scrollbars */
