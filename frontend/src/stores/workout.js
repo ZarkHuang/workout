@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { workoutsAPI } from '@/api/client'
+import { sendRestNotification, playTimerChime, triggerVibration } from '@/utils/notifications'
 
 export const useWorkoutStore = defineStore('workout', () => {
   // 1. Workout Session State (Flexible post-workout or in-gym logging)
@@ -10,10 +11,17 @@ export const useWorkoutStore = defineStore('workout', () => {
   const startTime = ref(null)
   const sessionDate = ref(new Date().toISOString().substring(0, 10))
   const durationMinutes = ref(45)
-  const activeExercises = ref([]) // List of { exercise_id, name, target_muscle_group, timerStatus: 'IDLE'|'RUNNING'|'PAUSED', elapsedSeconds: 0, sets: [{ set_number, weight_kg, reps, rpe, is_completed, prev_weight, prev_reps }] }
+  const activeExercises = ref([]) 
 
-  // 2. Rest Timer State
+  // Timestamp-based Session Stopwatch State
+  const sessionTimerStart = ref(null) // timestamp ms
+  const sessionAccumulatedSeconds = ref(0)
+  const sessionTimerRunning = ref(false)
+
+  // 2. Timestamp-based Rest Timer State
+  const defaultRestSeconds = ref(parseInt(localStorage.getItem('fitpulse_default_rest_seconds') || '90', 10))
   const isTimerActive = ref(false)
+  const restTimerEndTime = ref(null) // timestamp ms
   const timerTotalSeconds = ref(90)
   const timerRemainingSeconds = ref(90)
   let timerInterval = null
@@ -30,14 +38,35 @@ export const useWorkoutStore = defineStore('workout', () => {
       sessionDate.value = data.sessionDate || new Date().toISOString().substring(0, 10)
       durationMinutes.value = data.durationMinutes || 45
       activeExercises.value = data.activeExercises || []
+      sessionTimerStart.value = data.sessionTimerStart || null
+      sessionAccumulatedSeconds.value = data.sessionAccumulatedSeconds || 0
+      sessionTimerRunning.value = data.sessionTimerRunning || false
     } catch (e) {
       console.error('Failed to parse active workout cache:', e)
     }
   }
 
+  // Restore active rest timer if exists
+  const savedRestEnd = localStorage.getItem('fitpulse_rest_timer_end')
+  if (savedRestEnd) {
+    const endMs = parseInt(savedRestEnd, 10)
+    const totalSecs = parseInt(localStorage.getItem('fitpulse_rest_timer_total') || '90', 10)
+    const now = Date.now()
+    if (endMs > now) {
+      isTimerActive.value = true
+      restTimerEndTime.value = endMs
+      timerTotalSeconds.value = totalSecs
+      timerRemainingSeconds.value = Math.ceil((endMs - now) / 1000)
+      startRestTicker()
+    } else {
+      localStorage.removeItem('fitpulse_rest_timer_end')
+      localStorage.removeItem('fitpulse_rest_timer_total')
+    }
+  }
+
   // Save active workout to localStorage whenever it changes
   watch(
-    [isWorkoutActive, sessionName, routineId, startTime, sessionDate, durationMinutes, activeExercises],
+    [isWorkoutActive, sessionName, routineId, startTime, sessionDate, durationMinutes, activeExercises, sessionTimerStart, sessionAccumulatedSeconds, sessionTimerRunning],
     () => {
       if (isWorkoutActive.value) {
         localStorage.setItem(
@@ -49,7 +78,10 @@ export const useWorkoutStore = defineStore('workout', () => {
             startTime: startTime.value,
             sessionDate: sessionDate.value,
             durationMinutes: durationMinutes.value,
-            activeExercises: activeExercises.value
+            activeExercises: activeExercises.value,
+            sessionTimerStart: sessionTimerStart.value,
+            sessionAccumulatedSeconds: sessionAccumulatedSeconds.value,
+            sessionTimerRunning: sessionTimerRunning.value
           })
         )
       } else {
@@ -68,6 +100,9 @@ export const useWorkoutStore = defineStore('workout', () => {
     sessionDate.value = new Date().toISOString().substring(0, 10)
     durationMinutes.value = 45
     activeExercises.value = []
+    sessionTimerStart.value = null
+    sessionAccumulatedSeconds.value = 0
+    sessionTimerRunning.value = false
 
     if (routine && routine.exercises) {
       routine.exercises.forEach((re) => {
@@ -91,6 +126,8 @@ export const useWorkoutStore = defineStore('workout', () => {
           target_muscle_group: re.exercise?.target_muscle_group || 'CHEST',
           timerStatus: 'IDLE',
           elapsedSeconds: 0,
+          startTimestamp: null,
+          accumulatedSeconds: 0,
           sets
         })
       })
@@ -108,6 +145,8 @@ export const useWorkoutStore = defineStore('workout', () => {
       target_muscle_group: exercise.target_muscle_group,
       timerStatus: 'IDLE',
       elapsedSeconds: 0,
+      startTimestamp: null,
+      accumulatedSeconds: 0,
       sets: [
         {
           set_number: 1,
@@ -142,7 +181,6 @@ export const useWorkoutStore = defineStore('workout', () => {
     const ex = activeExercises.value[exerciseIndex]
     if (!ex || ex.sets.length <= 1) return
     ex.sets.splice(setIndex, 1)
-    // Re-index sets
     ex.sets.forEach((s, idx) => {
       s.set_number = idx + 1
     })
@@ -152,14 +190,60 @@ export const useWorkoutStore = defineStore('workout', () => {
     activeExercises.value.splice(exerciseIndex, 1)
   }
 
-  // Toggle exercise-specific timer (Start / Pause / Resume)
+  // --- Timestamp-Based Session Stopwatch Controls ---
+  function startSessionTimer() {
+    if (!sessionTimerRunning.value) {
+      sessionTimerRunning.value = true
+      sessionTimerStart.value = Date.now()
+      if (!startTime.value) startTime.value = new Date()
+    }
+  }
+
+  function pauseSessionTimer() {
+    if (sessionTimerRunning.value) {
+      if (sessionTimerStart.value) {
+        sessionAccumulatedSeconds.value += Math.floor((Date.now() - sessionTimerStart.value) / 1000)
+      }
+      sessionTimerStart.value = null
+      sessionTimerRunning.value = false
+    }
+  }
+
+  function toggleSessionTimer() {
+    if (sessionTimerRunning.value) {
+      pauseSessionTimer()
+    } else {
+      startSessionTimer()
+    }
+  }
+
+  function getSessionElapsedSeconds() {
+    if (sessionTimerRunning.value && sessionTimerStart.value) {
+      return sessionAccumulatedSeconds.value + Math.floor((Date.now() - sessionTimerStart.value) / 1000)
+    }
+    return sessionAccumulatedSeconds.value
+  }
+
+  // --- Timestamp-Based Single Exercise Stopwatch ---
   function toggleExerciseTimer(exerciseIndex) {
     const ex = activeExercises.value[exerciseIndex]
     if (!ex) return
+
+    // Ensure main session timer is running
+    if (!sessionTimerRunning.value) {
+      startSessionTimer()
+    }
+
     if (ex.timerStatus === 'RUNNING') {
       ex.timerStatus = 'PAUSED'
+      if (ex.startTimestamp) {
+        ex.accumulatedSeconds = (ex.accumulatedSeconds || 0) + Math.floor((Date.now() - ex.startTimestamp) / 1000)
+      }
+      ex.startTimestamp = null
+      ex.elapsedSeconds = ex.accumulatedSeconds || 0
     } else {
       ex.timerStatus = 'RUNNING'
+      ex.startTimestamp = Date.now()
     }
   }
 
@@ -168,71 +252,122 @@ export const useWorkoutStore = defineStore('workout', () => {
     if (!ex) return
     ex.timerStatus = 'IDLE'
     ex.elapsedSeconds = 0
+    ex.startTimestamp = null
+    ex.accumulatedSeconds = 0
   }
 
-  // Toggle set completion and trigger rest timer
-  function toggleSetComplete(exerciseIndex, setIndex, defaultRestSeconds = 90) {
-    const set = activeExercises.value[exerciseIndex]?.sets[setIndex]
-    if (!set) return
-    set.is_completed = !set.is_completed
-    if (set.is_completed) {
-      startRestTimer(defaultRestSeconds)
-    }
+  function syncExerciseTimers() {
+    activeExercises.value.forEach((ex) => {
+      if (ex.timerStatus === 'RUNNING' && ex.startTimestamp) {
+        ex.elapsedSeconds = (ex.accumulatedSeconds || 0) + Math.floor((Date.now() - ex.startTimestamp) / 1000)
+      }
+    })
   }
 
-  // Rest Timer Controls with Web Audio synthesis & Vibration
-  function playBeepSound() {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext
-      if (!AudioCtx) return
-      const ctx = new AudioCtx()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(880, ctx.currentTime) // A5 note
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.start()
-      osc.stop(ctx.currentTime + 0.5)
-    } catch (e) {
-      console.log('Audio alert not supported or blocked by user gesture:', e)
-    }
-  }
-
-  function triggerVibration() {
-    if ('vibrate' in navigator) {
-      navigator.vibrate([200, 100, 200])
-    }
-  }
-
-  function startRestTimer(seconds = 90) {
+  // --- Timestamp-Based Rest Timer Controls ---
+  function startRestTimer(seconds = 90, exName = '', setNum = 1) {
     clearInterval(timerInterval)
+    const now = Date.now()
+    restTimerEndTime.value = now + seconds * 1000
     timerTotalSeconds.value = seconds
     timerRemainingSeconds.value = seconds
     isTimerActive.value = true
 
+    localStorage.setItem('fitpulse_rest_timer_end', restTimerEndTime.value.toString())
+    localStorage.setItem('fitpulse_rest_timer_total', seconds.toString())
+
+    startRestTicker(exName, setNum)
+  }
+
+  function startRestTicker(exName = '', setNum = 1) {
+    clearInterval(timerInterval)
     timerInterval = setInterval(() => {
-      if (timerRemainingSeconds.value > 0) {
-        timerRemainingSeconds.value--
-      } else {
-        clearInterval(timerInterval)
-        isTimerActive.value = false
-        playBeepSound()
-        triggerVibration()
-      }
-    }, 1000)
+      syncRestTimerTick(exName, setNum)
+    }, 500)
+  }
+
+  function syncRestTimerTick(exName = '', setNum = 1) {
+    if (!isTimerActive.value || !restTimerEndTime.value) return
+    const now = Date.now()
+    const diff = Math.ceil((restTimerEndTime.value - now) / 1000)
+
+    if (diff > 0) {
+      timerRemainingSeconds.value = diff
+    } else {
+      timerRemainingSeconds.value = 0
+      clearInterval(timerInterval)
+      isTimerActive.value = false
+      restTimerEndTime.value = null
+      localStorage.removeItem('fitpulse_rest_timer_end')
+      localStorage.removeItem('fitpulse_rest_timer_total')
+
+      sendRestNotification(
+        '🔔 FitPulse 休息時間結束！',
+        exName ? `第 ${setNum + 1} 組 ${exName} 準備開練！深呼吸，保持專注 💪` : '組間休息已結束，準備進行下一組動作！💪'
+      )
+    }
   }
 
   function stopRestTimer() {
     clearInterval(timerInterval)
     isTimerActive.value = false
+    restTimerEndTime.value = null
+    localStorage.removeItem('fitpulse_rest_timer_end')
+    localStorage.removeItem('fitpulse_rest_timer_total')
   }
 
   function addTimerSeconds(seconds = 30) {
-    timerRemainingSeconds.value += seconds
+    if (!restTimerEndTime.value) {
+      startRestTimer(seconds)
+      return
+    }
+    restTimerEndTime.value += seconds * 1000
     timerTotalSeconds.value += seconds
+    timerRemainingSeconds.value += seconds
+    localStorage.setItem('fitpulse_rest_timer_end', restTimerEndTime.value.toString())
+    localStorage.setItem('fitpulse_rest_timer_total', timerTotalSeconds.value.toString())
+  }
+
+  function setDefaultRestSeconds(secs) {
+    defaultRestSeconds.value = Number(secs) || 90
+    localStorage.setItem('fitpulse_default_rest_seconds', defaultRestSeconds.value.toString())
+  }
+
+  function setRestTimerDuration(secs) {
+    const s = Math.max(5, Number(secs) || 90)
+    startRestTimer(s)
+  }
+
+  // Toggle set completion and trigger rest timer
+  function toggleSetComplete(exerciseIndex, setIndex, customRestSeconds = null) {
+    const ex = activeExercises.value[exerciseIndex]
+    const set = ex?.sets[setIndex]
+    if (!set) return
+    
+    // Auto-start session timer if not running
+    if (!sessionTimerRunning.value) {
+      startSessionTimer()
+    }
+
+    set.is_completed = !set.is_completed
+    if (set.is_completed) {
+      const restSecs = customRestSeconds || ex?.rest_seconds || defaultRestSeconds.value || 90
+      startRestTimer(restSecs, ex?.name, set.set_number)
+    }
+  }
+
+  // Lifecycle listeners for seamless tab switching / phone locking
+  if (typeof window !== 'undefined') {
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        syncRestTimerTick()
+        syncExerciseTimers()
+      }
+    })
+    window.addEventListener('focus', () => {
+      syncRestTimerTick()
+      syncExerciseTimers()
+    })
   }
 
   // Finish and submit workout session to backend
@@ -242,7 +377,6 @@ export const useWorkoutStore = defineStore('workout', () => {
 
     activeExercises.value.forEach((ex) => {
       ex.sets.forEach((s) => {
-        // If weight > 0 or reps > 0 or marked completed, we include it
         if (s.is_completed || s.weight_kg > 0 || s.reps > 0) {
           totalVol += (Number(s.weight_kg) || 0) * (Number(s.reps) || 0)
           allSets.push({
@@ -261,8 +395,9 @@ export const useWorkoutStore = defineStore('workout', () => {
       throw new Error('請至少填寫 1 組動作的重量或次數！')
     }
 
+    const calculatedElapsedMins = Math.max(1, Math.round(getSessionElapsedSeconds() / 60))
+    const duration = customDuration !== null ? Number(customDuration) : calculatedElapsedMins
     const targetDate = customDateStr ? new Date(customDateStr) : (startTime.value ? new Date(startTime.value) : new Date())
-    const duration = customDuration !== null ? Number(customDuration) : (durationMinutes.value || 45)
 
     const sessionPayload = {
       routine_id: routineId.value,
@@ -280,7 +415,9 @@ export const useWorkoutStore = defineStore('workout', () => {
       activeExercises.value = []
       routineId.value = null
       startTime.value = null
-      sessionName.value = '今日自訂訓練'
+      sessionTimerStart.value = null
+      sessionAccumulatedSeconds.value = 0
+      sessionTimerRunning.value = false
       stopRestTimer()
       localStorage.removeItem('fitpulse_active_workout')
       return res.data
@@ -294,7 +431,9 @@ export const useWorkoutStore = defineStore('workout', () => {
     activeExercises.value = []
     routineId.value = null
     startTime.value = null
-    sessionName.value = '今日自訂訓練'
+    sessionTimerStart.value = null
+    sessionAccumulatedSeconds.value = 0
+    sessionTimerRunning.value = false
     stopRestTimer()
     localStorage.removeItem('fitpulse_active_workout')
   }
@@ -307,9 +446,16 @@ export const useWorkoutStore = defineStore('workout', () => {
     sessionDate,
     durationMinutes,
     activeExercises,
+    sessionTimerRunning,
+    sessionAccumulatedSeconds,
+    sessionTimerStart,
+    defaultRestSeconds,
     isTimerActive,
     timerTotalSeconds,
     timerRemainingSeconds,
+    restTimerEndTime,
+    setDefaultRestSeconds,
+    setRestTimerDuration,
     startWorkout,
     addExerciseToActive,
     addSet,
@@ -317,6 +463,11 @@ export const useWorkoutStore = defineStore('workout', () => {
     removeExercise,
     toggleExerciseTimer,
     resetExerciseTimer,
+    syncExerciseTimers,
+    startSessionTimer,
+    pauseSessionTimer,
+    toggleSessionTimer,
+    getSessionElapsedSeconds,
     toggleSetComplete,
     startRestTimer,
     stopRestTimer,

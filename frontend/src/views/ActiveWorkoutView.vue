@@ -31,25 +31,25 @@
             <button
               @click="toggleSessionTimer"
               class="px-2 py-0.5 rounded-lg text-[10px] font-black flex items-center gap-1 active:scale-95 transition-all shadow-xs"
-              :class="sessionTimerRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (sessionElapsedSeconds > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20')"
+              :class="workoutStore.sessionTimerRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (sessionElapsedSeconds > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20')"
             >
-              <component :is="sessionTimerRunning ? Pause : Play" class="w-2.5 h-2.5" />
-              <span>{{ sessionTimerRunning ? '暫停' : (sessionElapsedSeconds > 0 ? '繼續' : '開始') }}</span>
+              <component :is="workoutStore.sessionTimerRunning ? Pause : Play" class="w-2.5 h-2.5" />
+              <span>{{ workoutStore.sessionTimerRunning ? '暫停' : (sessionElapsedSeconds > 0 ? '繼續' : '開始') }}</span>
             </button>
           </div>
           <div class="mt-1 flex items-baseline gap-1.5">
             <div
               class="text-xl font-black font-mono tracking-wider"
-              :class="sessionTimerRunning ? 'text-emerald-400 animate-pulse' : (sessionElapsedSeconds > 0 ? 'text-white' : 'text-slate-400')"
+              :class="workoutStore.sessionTimerRunning ? 'text-emerald-400 animate-pulse' : (sessionElapsedSeconds > 0 ? 'text-white' : 'text-slate-400')"
             >
               {{ formattedSessionTime }}
             </div>
-            <span class="text-[9px] font-bold" :class="sessionTimerRunning ? 'text-emerald-400' : 'text-slate-500'">
-              {{ sessionTimerRunning ? '計時中' : (sessionElapsedSeconds > 0 ? '已暫停' : '準備就緒') }}
+            <span class="text-[9px] font-bold" :class="workoutStore.sessionTimerRunning ? 'text-emerald-400' : 'text-slate-500'">
+              {{ workoutStore.sessionTimerRunning ? '計時中' : (sessionElapsedSeconds > 0 ? '已暫停' : '準備就緒') }}
             </span>
           </div>
           <div class="text-[10px] text-slate-400 mt-0.5">
-            {{ sessionTimerRunning ? `累計約 ${Math.max(1, Math.round(sessionElapsedSeconds / 60))} 分鐘` : (sessionElapsedSeconds > 0 ? '點擊繼續' : '點擊開始開練') }}
+            {{ workoutStore.sessionTimerRunning ? `累計約 ${Math.max(1, Math.round(sessionElapsedSeconds / 60))} 分鐘` : (sessionElapsedSeconds > 0 ? '點擊繼續' : '點擊開始開練') }}
           </div>
         </div>
 
@@ -69,6 +69,25 @@
             type="date"
             class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
           />
+        </div>
+      </div>
+
+      <!-- Rest Timer Quick Setting Pill Selector -->
+      <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
+          <Timer class="w-3.5 h-3.5 text-emerald-400" />
+          <span>組間休息預設：</span>
+        </div>
+        <div class="flex items-center gap-1 overflow-x-auto scrollbar-none">
+          <button
+            v-for="secs in [30, 45, 60, 90, 120, 180]"
+            :key="secs"
+            @click="workoutStore.setDefaultRestSeconds(secs)"
+            class="px-2 py-0.5 rounded-lg text-[10px] font-black transition-all"
+            :class="workoutStore.defaultRestSeconds === secs ? 'bg-emerald-500 text-slate-950 shadow-sm font-black' : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 hover:text-white'"
+          >
+            {{ secs }}s
+          </button>
         </div>
       </div>
 
@@ -392,8 +411,7 @@ const previousHints = ref({})
 const submitting = ref(false)
 
 // Session live stopwatch state
-const sessionElapsedSeconds = ref(0)
-const sessionTimerRunning = ref(false)
+const sessionElapsedSeconds = ref(workoutStore.getSessionElapsedSeconds())
 let sessionTicker = null
 let exerciseTimerInterval = null
 
@@ -411,9 +429,10 @@ const formattedDateDisplay = computed(() => {
 })
 
 const formattedSessionTime = computed(() => {
-  const h = Math.floor(sessionElapsedSeconds.value / 3600)
-  const m = Math.floor((sessionElapsedSeconds.value % 3600) / 60)
-  const s = sessionElapsedSeconds.value % 60
+  const secs = sessionElapsedSeconds.value
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  const s = secs % 60
   if (h > 0) {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
@@ -451,26 +470,18 @@ const filteredExerciseLibrary = computed(() => {
 })
 
 function toggleSessionTimer() {
-  if (!sessionTimerRunning.value && !workoutStore.startTime) {
-    workoutStore.startTime = new Date()
-  }
-  sessionTimerRunning.value = !sessionTimerRunning.value
+  workoutStore.toggleSessionTimer()
+  sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
 }
 
 function handleToggleExerciseTimer(exIdx) {
-  if (!sessionTimerRunning.value) {
-    sessionTimerRunning.value = true
-    if (!workoutStore.startTime) workoutStore.startTime = new Date()
-  }
   workoutStore.toggleExerciseTimer(exIdx)
+  sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
 }
 
 function handleToggleSetComplete(exIdx, setIdx) {
-  if (!sessionTimerRunning.value) {
-    sessionTimerRunning.value = true
-    if (!workoutStore.startTime) workoutStore.startTime = new Date()
-  }
   workoutStore.toggleSetComplete(exIdx, setIdx, 90)
+  sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
 }
 
 function formatSeconds(secs) {
@@ -581,26 +592,16 @@ onMounted(() => {
 
   fetchExerciseLibrary()
 
-  // Calculate elapsed time from start or run ticker
-  if (workoutStore.startTime) {
-    const elapsed = Math.floor((new Date() - new Date(workoutStore.startTime)) / 1000)
-    sessionElapsedSeconds.value = Math.max(0, elapsed)
-  }
+  sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
 
   sessionTicker = setInterval(() => {
-    if (sessionTimerRunning.value) {
-      sessionElapsedSeconds.value++
-    }
-  }, 1000)
+    sessionElapsedSeconds.value = workoutStore.getSessionElapsedSeconds()
+  }, 500)
 
   // Per-exercise stopwatch ticker
   exerciseTimerInterval = setInterval(() => {
-    workoutStore.activeExercises.forEach(ex => {
-      if (ex.timerStatus === 'RUNNING') {
-        ex.elapsedSeconds = (ex.elapsedSeconds || 0) + 1
-      }
-    })
-  }, 1000)
+    workoutStore.syncExerciseTimers()
+  }, 500)
 })
 
 onUnmounted(() => {
