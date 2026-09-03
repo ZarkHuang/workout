@@ -1,35 +1,27 @@
 <template>
-  <div class="h-[calc(100dvh-3.5rem-4.5rem)] flex flex-col max-w-lg mx-auto px-3.5 pb-1 select-none overflow-hidden">
-    <!-- Clean Sub-Toolbar (No Duplicate App Navbar) -->
-    <div class="flex-shrink-0 flex items-center justify-between py-2 border-b border-slate-200/80 bg-slate-50">
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-500 to-teal-600 text-white flex items-center justify-center shadow-xs">
-          <Bot class="w-4 h-4" />
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-black text-slate-900">Gemini AI 隨身健身顧問</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          </div>
-          <p class="text-[9px] text-slate-400">已即時連線你的體態與營養數據</p>
-        </div>
+  <div class="fixed inset-x-0 top-14 bottom-[calc(4rem+env(safe-area-inset-bottom,16px))] max-w-xl mx-auto flex flex-col bg-slate-50 px-3 z-30 overflow-hidden select-none">
+    <!-- Minimal Top Action (Only Clear Chat, No Redundant Header Row) -->
+    <div class="flex-shrink-0 flex items-center justify-between pt-1.5 pb-1 px-1">
+      <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-[10px] text-slate-500">AI 已就緒</span>
       </div>
       <button
         @click="clearChat"
-        class="text-[10px] font-bold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg bg-slate-200/70 hover:bg-slate-200 transition-colors"
+        class="text-[11px] font-bold text-slate-500 hover:text-slate-800 px-2.5 py-0.5 rounded-lg bg-slate-200/70 hover:bg-slate-200 active:scale-95 transition-all"
       >
-        清空重開
+        🗑️ 清空重開
       </button>
     </div>
 
     <!-- Chat Messages Scroll Area -->
-    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 py-2 min-h-0 select-text">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 py-1.5 min-h-0 select-text">
       <!-- Welcome Intro Bubble -->
       <div class="flex items-start gap-2">
         <div class="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
           <Bot class="w-4 h-4" />
         </div>
-        <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-sm p-3.5 text-xs text-slate-700 leading-relaxed shadow-apple space-y-2 max-w-[85%]">
+        <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-sm p-3.5 text-xs text-slate-700 leading-relaxed shadow-apple space-y-2 max-w-[88%]">
           <p>
             嗨，<strong>{{ authStore.user?.name || '朋友' }}</strong>！我是你的專屬健身 AI 教練。
           </p>
@@ -65,7 +57,7 @@
 
         <!-- Bubble -->
         <div
-          class="p-3.5 rounded-2xl text-xs leading-relaxed max-w-[85%] space-y-2"
+          class="p-3.5 rounded-2xl text-xs leading-relaxed max-w-[88%] space-y-2"
           :class="msg.role === 'user' ? 'bg-brand-500 text-white rounded-tr-sm shadow-sm' : 'bg-white border border-slate-200/80 text-slate-800 rounded-tl-sm shadow-apple'"
         >
           <div class="whitespace-pre-wrap">{{ cleanMessageText(msg.content) }}</div>
@@ -116,7 +108,7 @@
       </div>
     </div>
 
-    <!-- Quick Prompt Pills & Message Input Bar (Fixed cleanly at bottom of chat area) -->
+    <!-- Quick Prompt Pills & Message Input Bar (Fixed Directly Above BottomNav) -->
     <div class="flex-shrink-0 pt-1.5 pb-2 bg-slate-50 space-y-1.5 border-t border-slate-200/80">
       <!-- Quick Prompt Pills -->
       <div class="flex gap-1.5 overflow-x-auto scrollbar-none py-0.5">

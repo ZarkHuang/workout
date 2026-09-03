@@ -208,6 +208,9 @@ def update_profile(
         current_user.name = profile_data.name.strip()
         db.add(current_user)
 
+    update_fields = profile_data.model_dump(exclude_unset=True)
+    update_fields.pop("name", None)
+
     auto_recalc = profile_data.auto_recalculate is not False
     
     for key, value in update_fields.items():
