@@ -963,7 +963,26 @@ function startBlankWorkout() {
   router.push('/active-workout')
 }
 
-function startRoutine(routine) {
+async function startRoutine(routine) {
+  try {
+    const recRes = await workoutsAPI.getRecoveryStatus()
+    const muscles = recRes.data?.muscles || []
+    const split = routine.target_split || ''
+    const primaryKey = ['CHEST', 'BACK', 'SHOULDERS', 'LEGS'].includes(split)
+      ? split
+      : (split === 'PUSH' ? 'CHEST' : (split === 'PULL' ? 'BACK' : null))
+    const mStat = primaryKey ? muscles.find(m => m.muscle_group === primaryKey) : null
+    if (mStat && mStat.recovery_percentage < 45) {
+      const ok = confirm(
+        `⚠️【肌肉疲勞保護提醒】\n\n` +
+        `此課表目標部位「${mStat.label_zh}」目前修復度僅 ${mStat.recovery_percentage}%（建議再休息約 ${mStat.hours_until_recovered} 小時）！\n` +
+        `連續高強度訓練同一肌群會中斷肌肥大超補償並增加拉傷風險。\n\n` +
+        `確定仍要開始此課表嗎？`
+      )
+      if (!ok) return
+    }
+  } catch (e) {}
+
   workoutStore.startWorkout(routine.title, routine)
   router.push('/active-workout')
 }

@@ -414,13 +414,13 @@ def recommend_workout(
     recovery_summary = "; ".join([f"{m.label_zh}: {m.status} ({m.recovery_percentage}%)" for m in recovery.muscles])
 
     # Determine targeted body-part split (CHEST, BACK, SHOULDERS, LEGS, PUSH, PULL, CARDIO)
+    muscle_map = {m.muscle_group: m for m in recovery.muscles}
     focus_pref = (req.focus_preference or "").upper().strip()
     if focus_pref in SPLIT_TEMPLATES:
         target_focus = focus_pref
     else:
         # Auto-detect best split: candidate from 4 major body-part splits
         major_candidates = ["CHEST", "BACK", "SHOULDERS", "LEGS"]
-        muscle_map = {m.muscle_group: m for m in recovery.muscles}
         
         # Sort candidates: 1. highest recovery percentage, 2. longest hours since last trained (None -> float('inf'))
         best_candidate = "CHEST"
@@ -445,6 +445,14 @@ def recommend_workout(
         "CARDIO": "有氧燃脂日 (心肺/HIIT)"
     }
     target_label_zh = target_labels.get(target_focus, "胸部專攻")
+
+    # Check recovery state of the selected target_focus
+    primary_muscle_key = "CHEST" if target_focus == "PUSH" else ("BACK" if target_focus == "PULL" else target_focus)
+    target_m_stat = muscle_map.get(primary_muscle_key)
+    target_rec_pct = target_m_stat.recovery_percentage if target_m_stat else 100
+    target_hours_rem = target_m_stat.hours_until_recovered if (target_m_stat and target_m_stat.hours_until_recovered) else 0.0
+    is_target_fatigued = (target_focus != "CARDIO") and (target_rec_pct < 45)
+    is_target_recovering = (target_focus != "CARDIO") and (45 <= target_rec_pct < 85)
 
     sub_focus_key = (req.sub_focus or "").upper().strip()
     custom_notes = req.custom_notes or req.special_conditions or ""
@@ -474,6 +482,32 @@ def recommend_workout(
     elif sub_focus_key in ["GLUTES", "HAMSTRINGS"]:
         sub_focus_desc = "【臀大肌與後鏈伸展 (RDL/臀推/腿彎舉)】"
 
+    def _apply_fatigue_protection(items, base_title, base_rationale):
+        if is_target_fatigued:
+            protected_items = []
+            for it in items:
+                protected_items.append(AIRoutineExerciseItem(
+                    exercise_id=it.exercise_id,
+                    exercise_name=it.exercise_name,
+                    target_muscle_group=it.target_muscle_group,
+                    target_sets=min(it.target_sets, 2),
+                    target_reps="12-15",
+                    suggested_weight_kg=round((it.suggested_weight_kg or 0.0) * 0.55, 1),
+                    notes=f"⚠️ 疲勞降載模式（平時55%重量，勿力竭）｜{it.notes or ''}"
+                ))
+            warn_msg = (
+                f"⚠️【過度訓練防護警示】您的{target_label_zh}目前修復度僅 {target_rec_pct}%（距離建議 85% 訓練標準尚需休息約 {target_hours_rem} 小時）！"
+                f"強烈建議今日改練其他已完全修復肌群；若仍欲活動，本課表已自動降載為「主動恢復 / 輕量充血模式（組數減半、重量降至 55%）」，切勿推至力竭！ "
+            )
+            return f"【輕量恢復】{base_title}", warn_msg + base_rationale, protected_items
+        elif is_target_recovering:
+            notice_msg = (
+                f"⏳【組織修復中提醒】您的{target_label_zh}目前修復度為 {target_rec_pct}%（約再休 {target_hours_rem} 小時可達最佳狀態），"
+                f"今日訓練建議保留 2~3 次餘力 (RPE 7-8)，避免極限大重量衝擊。 "
+            )
+            return base_title, notice_msg + base_rationale, items
+        return base_title, base_rationale, items
+
     api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
     if not api_key:
         resolved_fallback_ex = _enrich_and_resolve_ai_exercises(
@@ -482,12 +516,20 @@ def recommend_workout(
             raw_items=fallback_template["exercises"],
             default_muscle_group=target_focus
         )
+        base_rat = (
+            f"系統依據您的專攻偏好（{sub_focus_desc}）為您規劃課表。{fallback_template['rationale']}"
+            if (is_target_fatigued or is_target_recovering)
+            else f"系統依據您的恢復狀態（{target_label_zh}修復度 {target_rec_pct}% 已充分修復）與專攻偏好（{sub_focus_desc}）為您規劃深度課表。{fallback_template['rationale']}"
+        )
+        adj_title, adj_rat, adj_ex = _apply_fatigue_protection(
+            resolved_fallback_ex, fallback_template["title"], base_rat
+        )
         return AIRoutineRecommendResponse(
-            routine_title=fallback_template["title"],
+            routine_title=adj_title,
             target_split=fallback_template["target_split"],
-            rationale=f"系統依據您的恢復狀態（{target_label_zh}已充分修復）與專攻偏好（{sub_focus_desc}）為您規劃深度課表。{fallback_template['rationale']}",
+            rationale=adj_rat,
             warmup_tips=fallback_template["warmup_tips"],
-            exercises=resolved_fallback_ex,
+            exercises=adj_ex,
             cooldown_tips=fallback_template["cooldown_tips"]
         )
 
@@ -549,12 +591,17 @@ def recommend_workout(
             raw_items=raw_ex_items,
             default_muscle_group=target_focus
         )
+        adj_title, adj_rat, adj_ex = _apply_fatigue_protection(
+            resolved_ex_items,
+            parsed.get("routine_title", fallback_template["title"]),
+            parsed.get("rationale", fallback_template["rationale"])
+        )
         return AIRoutineRecommendResponse(
-            routine_title=parsed.get("routine_title", fallback_template["title"]),
+            routine_title=adj_title,
             target_split=parsed.get("target_split", target_focus),
-            rationale=parsed.get("rationale", fallback_template["rationale"]),
+            rationale=adj_rat,
             warmup_tips=parsed.get("warmup_tips", fallback_template["warmup_tips"]),
-            exercises=resolved_ex_items,
+            exercises=adj_ex,
             cooldown_tips=parsed.get("cooldown_tips", fallback_template["cooldown_tips"])
         )
     except Exception as e:
@@ -565,12 +612,20 @@ def recommend_workout(
             raw_items=fallback_template["exercises"],
             default_muscle_group=target_focus
         )
+        base_rat = (
+            f"系統依據您的專攻偏好（{sub_focus_desc}）為您規劃課表。{fallback_template['rationale']}"
+            if (is_target_fatigued or is_target_recovering)
+            else f"根據您的肌群修復數據（{target_label_zh}修復度 {target_rec_pct}% 已充血恢復），今日推薦進行單一部位深度訓練。{fallback_template['rationale']}"
+        )
+        adj_title, adj_rat, adj_ex = _apply_fatigue_protection(
+            resolved_fallback_ex, fallback_template["title"], base_rat
+        )
         return AIRoutineRecommendResponse(
-            routine_title=fallback_template["title"],
+            routine_title=adj_title,
             target_split=fallback_template["target_split"],
-            rationale=f"根據您的肌群修復數據（{target_label_zh}已 100% 充血恢復），今日推薦進行單一部位深度訓練。{fallback_template['rationale']}",
+            rationale=adj_rat,
             warmup_tips=fallback_template["warmup_tips"],
-            exercises=resolved_fallback_ex,
+            exercises=adj_ex,
             cooldown_tips=fallback_template["cooldown_tips"]
         )
 

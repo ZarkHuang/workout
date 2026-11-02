@@ -15,12 +15,22 @@
       </button>
     </div>
 
-    <!-- Recommendations summary pills -->
-    <div v-if="overview?.recommended_focus?.length" class="mb-4 p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2">
-      <Sparkles class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-      <div class="text-xs text-emerald-900 leading-relaxed">
-        <span class="font-bold text-emerald-800">今日推薦進攻部位：</span>
-        <span class="font-medium">{{ overview.recommended_focus.join('、') }}</span>
+    <!-- Recommendations & Avoid summary pills -->
+    <div class="space-y-2 mb-3.5">
+      <div v-if="overview?.recommended_focus?.length" class="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2">
+        <Sparkles class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+        <div class="text-xs text-emerald-900 leading-relaxed">
+          <span class="font-bold text-emerald-800">今日推薦進攻部位：</span>
+          <span class="font-medium">{{ overview.recommended_focus.join('、') }}</span>
+        </div>
+      </div>
+
+      <div v-if="overview?.avoid_muscles?.length" class="p-2.5 rounded-xl bg-rose-50/80 border border-rose-200/80 flex items-start gap-2">
+        <span class="text-xs leading-none mt-0.5">⛔</span>
+        <div class="text-xs text-rose-900 leading-relaxed">
+          <span class="font-bold text-rose-800">疲勞保護（建議休息避免高強度訓練）：</span>
+          <span class="font-semibold">{{ overview.avoid_muscles.join('、') }}</span>
+        </div>
       </div>
     </div>
 
@@ -54,10 +64,33 @@
         <!-- Info note -->
         <div class="text-[10px] text-slate-500 flex items-center justify-between">
           <span>{{ getStatusText(m.status) }}</span>
-          <span v-if="m.hours_since_last_trained !== null">{{ m.hours_since_last_trained }}h 前</span>
+          <span v-if="m.hours_since_last_trained !== null">{{ m.hours_since_last_trained }}h 前練</span>
           <span v-else>未紀錄</span>
         </div>
+
+        <!-- Remaining recovery countdown -->
+        <div
+          v-if="m.hours_until_recovered && m.hours_until_recovered > 0"
+          class="mt-1 pt-1 border-t border-slate-200/60 text-[10px] font-bold flex items-center justify-between"
+          :class="m.status === 'FATIGUED' ? 'text-rose-700' : 'text-amber-700'"
+        >
+          <span>⏳ 建議再休 {{ m.hours_until_recovered }}h</span>
+          <span class="text-[9px] font-normal text-slate-400">週期 {{ m.target_recovery_hours || 48 }}h</span>
+        </div>
+        <div
+          v-else-if="m.hours_since_last_trained !== null"
+          class="mt-1 pt-1 border-t border-emerald-200/50 text-[10px] font-semibold text-emerald-700 flex items-center justify-between"
+        >
+          <span>✅ 超補償完成可進攻</span>
+          <span class="text-[9px] font-normal text-slate-400">週期 {{ m.target_recovery_hours || 48 }}h</span>
+        </div>
       </div>
+    </div>
+
+    <!-- Scientific Recovery Footnote -->
+    <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 leading-relaxed flex items-center justify-between flex-wrap gap-1">
+      <span>🧬 科學修復週期：核心 24h · 肩/手 36h · 胸/背 48-60h · 臀腿 72h</span>
+      <span class="text-slate-500 font-semibold">達 85% 即可高強度訓練</span>
     </div>
   </div>
 </template>

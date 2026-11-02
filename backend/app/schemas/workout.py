@@ -114,6 +114,8 @@ class MuscleRecoveryStatus(BaseModel):
     recovery_percentage: int # 0 to 100
     status: str # RECOVERED, RECOVERING, FATIGUED
     hours_since_last_trained: Optional[float] = None
+    hours_until_recovered: Optional[float] = 0.0
+    target_recovery_hours: Optional[int] = 48
     last_trained_date: Optional[str] = None
     last_volume_kg: float = 0.0
 

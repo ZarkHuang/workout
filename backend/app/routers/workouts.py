@@ -723,18 +723,23 @@ def get_muscle_recovery_status(
 ):
     repair_corrupted_sessions(db=db, user_id=current_user.id)
     """
-    Calculates muscle recovery percentage based on:
-    - Target muscle groups: CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE
-    - Time elapsed since last workout containing this muscle group
-    - Recovery formula: 0~24h: 10-40% (FATIGUED), 24~48h: 40-85% (RECOVERING), >=48h or Never: 100% (RECOVERED)
+    Scientific Muscle Recovery Model (24h - 72h based on muscle group size & volume):
+    - CORE (核心/腹肌): 24h full recovery window
+    - SHOULDERS (肩部) / ARMS (二三頭手臂): 36h full recovery window
+    - CHEST (胸大肌) / BACK (背闊與上背): 48h standard full recovery window (up to 60h for high volume)
+    - LEGS (臀腿大肌群 + CNS): 72h full recovery window
+    Status thresholds:
+    - < 45%: FATIGUED (急性疲勞發炎期，建議休息避免過度訓練)
+    - 45% ~ 84%: RECOVERING (組織超補償修復中，可輕度活動或再休數小時)
+    - >= 85%: RECOVERED (已充分修復，可進行高強度漸進超負荷訓練)
     """
     muscle_groups_info = [
-        {"key": "CHEST", "label": "胸大肌 (Chest)"},
-        {"key": "BACK", "label": "背闊與上背 (Back)"},
-        {"key": "LEGS", "label": "腿部與臀部 (Legs)"},
-        {"key": "SHOULDERS", "label": "三角肌肩部 (Shoulders)"},
-        {"key": "ARMS", "label": "手臂肱二/三頭 (Arms)"},
-        {"key": "CORE", "label": "核心與腹肌 (Core)"}
+        {"key": "CHEST", "label": "胸大肌 (Chest)", "base_hours": 48},
+        {"key": "BACK", "label": "背闊與上背 (Back)", "base_hours": 48},
+        {"key": "LEGS", "label": "腿部與臀部 (Legs)", "base_hours": 72},
+        {"key": "SHOULDERS", "label": "三角肌肩部 (Shoulders)", "base_hours": 36},
+        {"key": "ARMS", "label": "手臂肱二/三頭 (Arms)", "base_hours": 36},
+        {"key": "CORE", "label": "核心與腹肌 (Core)", "base_hours": 24}
     ]
 
     now = datetime.now(timezone.utc)
@@ -744,6 +749,7 @@ def get_muscle_recovery_status(
 
     for mg in muscle_groups_info:
         key = mg["key"]
+        base_target_hours = mg["base_hours"]
         
         # Query most recent session containing this muscle group
         recent_record = (
@@ -768,6 +774,8 @@ def get_muscle_recovery_status(
                 recovery_percentage=100,
                 status="RECOVERED",
                 hours_since_last_trained=None,
+                hours_until_recovered=0.0,
+                target_recovery_hours=base_target_hours,
                 last_trained_date=None,
                 last_volume_kg=0.0
             ))
@@ -778,23 +786,31 @@ def get_muscle_recovery_status(
         if trained_at.tzinfo is None:
             trained_at = trained_at.replace(tzinfo=timezone.utc)
 
+        vol_float = float(vol or 0.0)
+        # Adjust target recovery window slightly if session volume for this muscle was very high (> 6000kg)
+        target_hours = base_target_hours
+        if vol_float >= 6000 and base_target_hours < 72:
+            target_hours = min(72, base_target_hours + 12)
+
         hours_passed = max(0.0, (now - trained_at).total_seconds() / 3600.0)
 
-        # Standard recovery window is 48~72 hours
-        if hours_passed >= 60:
+        # Linear + supercompensation recovery curve from 10% (at 0h) to 100% (at target_hours)
+        if hours_passed >= target_hours:
             percentage = 100
+        else:
+            percentage = int(min(100, max(10, round(10 + (hours_passed / float(target_hours)) * 90))))
+
+        # Remaining hours until 85% (ready to train hard again) / 100% (full recovery)
+        ready_threshold_hours = target_hours * (75.0 / 90.0)  # hours needed to reach 85%
+        hours_remaining = max(0.0, round(ready_threshold_hours - hours_passed, 1))
+
+        if percentage >= 85:
             status_str = "RECOVERED"
             recovered_muscles.append(mg["label"])
-        elif hours_passed >= 36:
-            percentage = int(70 + (hours_passed - 36) / 24.0 * 30)
-            status_str = "RECOVERED" if percentage >= 85 else "RECOVERING"
-            if percentage >= 85:
-                recovered_muscles.append(mg["label"])
-        elif hours_passed >= 18:
-            percentage = int(40 + (hours_passed - 18) / 18.0 * 30)
+            hours_remaining = 0.0
+        elif percentage >= 45:
             status_str = "RECOVERING"
         else:
-            percentage = int(max(10, (hours_passed / 18.0) * 40))
             status_str = "FATIGUED"
             fatigued_muscles.append(mg["label"])
 
@@ -804,13 +820,15 @@ def get_muscle_recovery_status(
             recovery_percentage=min(100, percentage),
             status=status_str,
             hours_since_last_trained=round(hours_passed, 1),
+            hours_until_recovered=hours_remaining,
+            target_recovery_hours=target_hours,
             last_trained_date=trained_at.strftime("%Y-%m-%d %H:%M"),
-            last_volume_kg=round(float(vol or 0.0), 1)
+            last_volume_kg=round(vol_float, 1)
         ))
 
     return MuscleRecoveryOverview(
         muscles=results,
-        recommended_focus=recovered_muscles if recovered_muscles else ["全身輕量適應"],
+        recommended_focus=recovered_muscles if recovered_muscles else ["全身輕量適應 / 主動恢復"],
         avoid_muscles=fatigued_muscles
     )
 

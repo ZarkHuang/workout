@@ -87,10 +87,35 @@
           v-for="s in splitOptions"
           :key="s.key"
           @click="selectSplit(s.key)"
-          class="text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all"
-          :class="selectedSplit === s.key ? 'bg-white text-emerald-900 shadow-sm' : 'bg-white/15 text-emerald-100 hover:bg-white/25'"
+          class="text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all flex items-center gap-1"
+          :class="selectedSplit === s.key ? 'bg-white text-emerald-900 shadow-sm' : (isSplitFatigued(s.key) ? 'bg-rose-500/30 text-rose-100 border border-rose-300/40 hover:bg-rose-500/40' : 'bg-white/15 text-emerald-100 hover:bg-white/25')"
         >
-          {{ s.label }}
+          <span>{{ s.label }}</span>
+          <span
+            v-if="getSplitRecoveryPct(s.key) !== null && getSplitRecoveryPct(s.key) < 45"
+            class="text-[9px] px-1 py-0.2 rounded bg-rose-600 text-white font-black"
+          >
+            疲勞 {{ getSplitRecoveryPct(s.key) }}%
+          </span>
+        </button>
+      </div>
+
+      <!-- Fatigue Warning Banner when user selects a fatigued split -->
+      <div
+        v-if="selectedSplitMuscleStat && selectedSplitMuscleStat.recovery_percentage < 45"
+        class="mt-1.5 mb-2 p-2.5 rounded-xl bg-rose-950/60 border border-rose-300/40 text-[11px] text-rose-100 leading-relaxed flex items-start justify-between gap-2"
+      >
+        <div>
+          <span class="font-black text-rose-300">⛔ 疲勞休養警示：</span>
+          <span>
+            {{ selectedSplitMuscleStat.label_zh }}目前僅修復 <b>{{ selectedSplitMuscleStat.recovery_percentage }}%</b>（建議再休約 <b>{{ selectedSplitMuscleStat.hours_until_recovered }}h</b>）。連續高強度訓練易導致過度訓練與關節發炎，建議改選「⚡ 智慧推薦」換部位練！
+          </span>
+        </div>
+        <button
+          @click="selectSplit('AUTO')"
+          class="px-2 py-1 rounded-lg bg-emerald-400 text-emerald-950 font-black text-[10px] whitespace-nowrap flex-shrink-0 shadow-xs active:scale-95"
+        >
+          改練最佳部位
         </button>
       </div>
 
@@ -537,6 +562,31 @@ function selectSplit(splitKey) {
   customNotes.value = '' // Auto-clear input to enhance UX when switching tags
 }
 
+function getSplitPrimaryMuscleKey(splitKey) {
+  if (['CHEST', 'BACK', 'SHOULDERS', 'LEGS'].includes(splitKey)) return splitKey
+  if (splitKey === 'PUSH') return 'CHEST'
+  if (splitKey === 'PULL') return 'BACK'
+  return null
+}
+
+function getSplitMuscleStat(splitKey) {
+  const mKey = getSplitPrimaryMuscleKey(splitKey)
+  if (!mKey || !recoveryOverview.value?.muscles) return null
+  return recoveryOverview.value.muscles.find(m => m.muscle_group === mKey) || null
+}
+
+function getSplitRecoveryPct(splitKey) {
+  const st = getSplitMuscleStat(splitKey)
+  return st ? st.recovery_percentage : null
+}
+
+function isSplitFatigued(splitKey) {
+  const pct = getSplitRecoveryPct(splitKey)
+  return pct !== null && pct < 45
+}
+
+const selectedSplitMuscleStat = computed(() => getSplitMuscleStat(selectedSplit.value))
+
 const todayFormatted = computed(() => {
   const d = new Date()
   const options = { month: 'short', day: 'numeric', weekday: 'short' }
@@ -605,6 +655,21 @@ async function openAIRecommendModal(customSplit = null, customSubFocus = null) {
     }
   } else if (customSubFocus) {
     selectedSubFocus.value = customSubFocus
+  }
+
+  // Fatigue Guardrail: check if user selected a split whose primary muscle is FATIGUED (< 45%)
+  const targetStat = getSplitMuscleStat(selectedSplit.value)
+  if (targetStat && targetStat.recovery_percentage < 45) {
+    const forceProceed = confirm(
+      `⚠️【肌肉疲勞保護提醒】\n\n` +
+      `您的「${targetStat.label_zh}」目前修復度僅 ${targetStat.recovery_percentage}%（正處於急性疲勞期，建議再休息約 ${targetStat.hours_until_recovered} 小時以完成蛋白質超補償）！\n\n` +
+      `· 按「取消」：自動為您改排今日已完全修復的最佳部位（強烈推薦！）\n` +
+      `· 按「確定」：仍強制排練此部位（系統將自動降載為 55% 重量之輕量主動恢復模式）`
+    )
+    if (!forceProceed) {
+      selectedSplit.value = 'AUTO'
+      selectedSubFocus.value = 'DEFAULT'
+    }
   }
 
   loadingAI.value = true

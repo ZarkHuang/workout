@@ -74,18 +74,36 @@
       </div>
 
       <!-- Selected Exercise PR & Recent Records Summary -->
-      <div v-if="currentExerciseRecords.length > 0" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 space-y-1.5">
-        <div class="flex items-center justify-between text-xs">
-          <span class="font-bold text-slate-700">🏆 {{ activeExerciseName }} 最佳表現：</span>
-          <span class="font-black text-blue-600">
-            最高 {{ currentExerciseBest.weight_kg }}kg × {{ currentExerciseBest.reps }}次 (預估 1RM: {{ currentExerciseBest.estimated_1rm }}kg)
+      <div v-if="currentExerciseRecords.length > 0" class="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs font-bold text-slate-800 truncate">
+            🏆 {{ activeExerciseName }} 最佳表現
+          </div>
+          <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 whitespace-nowrap flex-shrink-0">
+            共 {{ currentExerciseRecords.length }} 次突破紀錄
           </span>
         </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-white rounded-lg p-2 border border-slate-200/70 flex items-center justify-between">
+            <span class="text-[10px] text-slate-400 font-semibold whitespace-nowrap">最高訓練重量</span>
+            <span class="text-xs font-black text-slate-800 whitespace-nowrap">
+              {{ currentExerciseBest.weight_kg }}kg × {{ currentExerciseBest.reps }}次
+            </span>
+          </div>
+          <div class="bg-blue-50/60 rounded-lg p-2 border border-blue-200/60 flex items-center justify-between">
+            <span class="text-[10px] text-blue-600 font-semibold whitespace-nowrap">預估 1RM 巔峰</span>
+            <span class="text-xs font-black text-blue-700 whitespace-nowrap">
+              {{ currentExerciseBest.estimated_1rm }} kg
+            </span>
+          </div>
+        </div>
+
         <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60">
           <span
             v-for="(rec, idx) in currentExerciseRecords.slice(-5)"
             :key="idx"
-            class="text-[10px] bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-semibold"
+            class="text-[10px] bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-semibold whitespace-nowrap"
           >
             {{ rec.date.slice(5) }}: {{ rec.weight_kg }}kg×{{ rec.reps }}
           </span>
