@@ -253,21 +253,22 @@ function setGender(g) {
   localStorage.setItem('fitpulse_avatar_gender', g)
 }
 
-// 5 Cute 3D Clay Workout Animations
+// 6 Cute 3D Clay Workout Animations
 const workoutActions = [
-  { key: 'HURDLE', id: 0, icon: '👟', label: '飛躍跨欄' },
+  { key: 'STAND', id: 5, icon: '🧍', label: '直立站姿' },
   { key: 'RUN', id: 1, icon: '🏃', label: '活力慢跑' },
+  { key: 'HURDLE', id: 0, icon: '👟', label: '飛躍跨欄' },
   { key: 'CURL', id: 2, icon: '💪', label: '啞鈴彎舉' },
   { key: 'SQUAT', id: 3, icon: '🏋️', label: '深蹲訓練' },
   { key: 'PRESS', id: 4, icon: '🙌', label: '活力肩推' }
 ]
-const currentAction = ref('HURDLE')
+const currentAction = ref('STAND')
 const showHotspotGlow = ref(true)
 
 // 360° Camera Yaw (Default -0.55 rad = 3/4 side-front angle matching the reference images!)
 const yaw = ref(-0.55)
 const targetYaw = ref(null)
-const autoRotate = ref(false)
+const autoRotate = ref(true)
 const isDragging = ref(false)
 const lastPointerX = ref(0)
 const dragMoved = ref(false)
@@ -347,6 +348,17 @@ function rotateToAngle(angleRad) {
 
 function selectMuscle(muscleGroup) {
   selectedMuscleGroup.value = muscleGroup
+  // When in standing posture, keep the standing posture so user can inspect any muscle 360°
+  if (currentAction.value === 'STAND') {
+    if (!autoRotate.value) {
+      if (muscleGroup === 'BACK' && Math.cos(yaw.value) > -0.2) {
+        rotateToAngle(Math.PI - 0.45)
+      } else if (['CHEST', 'CORE'].includes(muscleGroup) && Math.cos(yaw.value) < 0.2) {
+        rotateToAngle(-0.45)
+      }
+    }
+    return
+  }
   if (muscleGroup === 'ARMS') {
     currentAction.value = 'CURL'
   } else if (muscleGroup === 'LEGS') {
@@ -541,7 +553,31 @@ HitInfo mapScene(vec3 p) {
   bool showHurdle = false;
   bool showDumbbells = false;
 
-  if (uAction == 0) {
+  if (uAction == 5) {
+    // ACTION 5: NATURAL STANDING STRAIGHT (直立站姿 - 360° 全方位檢視各部位肌肉與體態)
+    float breath = sin(t * 0.8) * 0.012;
+    bounceY = breath;
+    leanZ = 0.0;
+
+    lHip = vec3(-0.14, -0.08 + bounceY, 0.0);
+    rHip = vec3( 0.14, -0.08 + bounceY, 0.0);
+
+    // Natural straight legs planted on floor
+    lKnee = vec3(-0.14, -0.44 + bounceY, 0.01);
+    rKnee = vec3( 0.14, -0.44 + bounceY, 0.01);
+    lAnkle = vec3(-0.14, -0.78, 0.0);
+    rAnkle = vec3( 0.14, -0.78, 0.0);
+
+    // Upright natural shoulders
+    lShoulder = vec3(-0.21, 0.30 + bounceY, 0.0);
+    rShoulder = vec3( 0.21, 0.30 + bounceY, 0.0);
+
+    // Natural arms hanging alongside the body with relaxed elbows and hands
+    lElbow = vec3(-0.28, 0.06 + bounceY, 0.01);
+    rElbow = vec3( 0.28, 0.06 + bounceY, 0.01);
+    lWrist = vec3(-0.26, -0.18 + bounceY + breath * 0.5, 0.04);
+    rWrist = vec3( 0.26, -0.18 + bounceY + breath * 0.5, 0.04);
+  } else if (uAction == 0) {
     // ACTION 0: HURDLE JUMP (Exact dynamic pose from Reference Image 1!)
     showHurdle = true;
     float jw = 0.5 + 0.5 * sin(t * 0.9);
@@ -1157,7 +1193,8 @@ function renderLoop(timestamp = 0) {
   const sec = timestamp * 0.001
   const tAnim = sec * 3.2
   let headY = 0.62
-  if (actId === 0) headY = 0.62 + 0.14 + (0.5 + 0.5 * Math.sin(tAnim * 0.9)) * 0.10
+  if (actId === 5) headY = 0.62 + Math.sin(tAnim * 0.8) * 0.012
+  else if (actId === 0) headY = 0.62 + 0.14 + (0.5 + 0.5 * Math.sin(tAnim * 0.9)) * 0.10
   else if (actId === 1) headY = 0.62 + Math.abs(Math.cos(tAnim * 1.4)) * 0.06
   else if (actId === 3) headY = 0.62 - (0.5 + 0.5 * Math.sin(tAnim * 1.1)) * 0.24
 
@@ -1178,14 +1215,24 @@ function renderLoop(timestamp = 0) {
   // Update 3D-projected floating pins
   const cosY = Math.cos(yaw.value)
   const sinY = Math.sin(yaw.value)
-  const pinAnchors = {
-    SHOULDERS: { x: -0.34, y: 0.36, z: 0.05, frontOnly: false },
-    CHEST: { x: 0.0, y: 0.28, z: 0.24, frontOnly: true },
-    CORE: { x: 0.0, y: 0.08, z: 0.22, frontOnly: true },
-    BACK: { x: 0.0, y: 0.26, z: -0.24, backOnly: true },
-    ARMS: { x: 0.42, y: 0.15, z: 0.08, frontOnly: false },
-    LEGS: { x: 0.32, y: -0.42, z: 0.12, frontOnly: false }
-  }
+  const isStanding = actId === 5
+  const pinAnchors = isStanding
+    ? {
+        SHOULDERS: { x: -0.30, y: 0.32, z: 0.05, frontOnly: false },
+        CHEST: { x: 0.0, y: 0.25, z: 0.22, frontOnly: true },
+        CORE: { x: 0.0, y: 0.06, z: 0.20, frontOnly: true },
+        BACK: { x: 0.0, y: 0.24, z: -0.22, backOnly: true },
+        ARMS: { x: 0.36, y: 0.06, z: 0.05, frontOnly: false },
+        LEGS: { x: 0.25, y: -0.42, z: 0.06, frontOnly: false }
+      }
+    : {
+        SHOULDERS: { x: -0.34, y: 0.36, z: 0.05, frontOnly: false },
+        CHEST: { x: 0.0, y: 0.28, z: 0.24, frontOnly: true },
+        CORE: { x: 0.0, y: 0.08, z: 0.22, frontOnly: true },
+        BACK: { x: 0.0, y: 0.26, z: -0.24, backOnly: true },
+        ARMS: { x: 0.42, y: 0.15, z: 0.08, frontOnly: false },
+        LEGS: { x: 0.32, y: -0.42, z: 0.12, frontOnly: false }
+      }
 
   projectedMusclePins.value = normalizedMuscles.value.map(m => {
     const anch = pinAnchors[m.muscle_group] || { x: 0, y: 0, z: 0 }
