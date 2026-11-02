@@ -89,6 +89,18 @@
         class="w-full h-full object-contain"
       ></canvas>
 
+      <!-- Floating Interactive Reaction Speech Bubble (When Character is Clicked!) -->
+      <transition name="reaction-pop">
+        <div
+          v-if="showReactionBubble"
+          class="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-1.5 bg-slate-900/95 text-white backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-xl border border-white/20 text-xs font-black animate-bounce whitespace-nowrap"
+        >
+          <span class="text-base">{{ reactionEmoji }}</span>
+          <span>{{ reactionMessage }}</span>
+          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900/95 rotate-45 border-r border-b border-white/20"></div>
+        </div>
+      </transition>
+
       <!-- Top-Center Compact Legend Overlay (Unobtrusive) -->
       <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 bg-white/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs z-20 text-[9px] font-bold text-slate-600 whitespace-nowrap">
         <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>疲勞(&lt;45%)</span>
@@ -230,7 +242,7 @@
 
       <!-- Bottom Drag Hint -->
       <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-slate-900/75 backdrop-blur-xs px-3 py-0.5 rounded-full text-[10px] text-white font-medium whitespace-nowrap shadow-xs z-20">
-        ↔️ 左右拖曳可 360° 旋轉 · 點擊兩側部位連動
+        👆 點擊人物可即時互動打氣 · ↔️ 拖曳可 360° 旋轉
       </div>
     </div>
 
@@ -305,6 +317,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { triggerVibration } from '@/utils/notifications'
 
 const props = defineProps({
   muscles: {
@@ -338,6 +351,65 @@ const workoutActions = [
 ]
 const currentAction = ref('STAND')
 const showHotspotGlow = ref(true)
+
+// Interactive Character Click Reaction States
+const reactionMessage = ref('')
+const reactionEmoji = ref('💪')
+const showReactionBubble = ref(false)
+const clickBounceTime = ref(-999)
+let reactionTimer = null
+
+const BOY_QUOTES = [
+  { text: '衝啊！每一組訓練都在突破極限！', emoji: '🔥' },
+  { text: '肌肉線條越來越雕刻了，保持專注！', emoji: '💪' },
+  { text: '背打直、核心收緊，穩定輸出！', emoji: '🏋️' },
+  { text: '休息也是超補償的重要一環，吃夠蛋白質！', emoji: '🍗' },
+  { text: '熱血不滅，今天的汗水是明天強大的養分！', emoji: '⚡' }
+]
+
+const GIRL_QUOTES = [
+  { text: '活力滿滿！今天的運動狀態太棒了～', emoji: '✨' },
+  { text: '核心收緊，體態線條越來越漂亮！', emoji: '💃' },
+  { text: '堅持下去，妳比想像中更強大！', emoji: '💖' },
+  { text: '步伐輕盈，保持呼吸節奏向前衝！', emoji: '🏃‍♀️' },
+  { text: '練完記得充分拉伸與補水唷！', emoji: '🥤' }
+]
+
+const MUSCLE_QUOTES = {
+  CHEST: { text: '胸肌發力感受度超棒，頂峰收縮！', emoji: '💥' },
+  BACK: { text: '背闊肌展開，厚度與線條全都要！', emoji: '🦅' },
+  SHOULDERS: { text: '南瓜肩打造中，推舉動作超標準！', emoji: '🎃' },
+  ARMS: { text: '手臂充血膨脹，二三頭肌力爆棚！', emoji: '💪' },
+  CORE: { text: '腹部核心如鋼鐵般緊繃穩固！', emoji: '🛡️' },
+  LEGS: { text: '深蹲無所畏懼，強大下盤是一切基礎！', emoji: '🦵' }
+}
+
+function triggerCharacterReaction(clickedMuscle = null) {
+  triggerVibration([25, 35, 25])
+  clickBounceTime.value = performance.now() * 0.001
+
+  if (clickedMuscle) {
+    const m = normalizedMuscles.value.find(item => item.muscle_group === clickedMuscle)
+    if (m && m.status === 'FATIGUED') {
+      reactionMessage.value = `${m.shortLabel}部位剛苦練完，正在超補償修復中！`
+      reactionEmoji.value = '💆'
+    } else if (MUSCLE_QUOTES[clickedMuscle]) {
+      reactionMessage.value = MUSCLE_QUOTES[clickedMuscle].text
+      reactionEmoji.value = MUSCLE_QUOTES[clickedMuscle].emoji
+    }
+  } else {
+    const pool = isFemale.value ? GIRL_QUOTES : BOY_QUOTES
+    const pick = pool[Math.floor(Math.random() * pool.length)]
+    reactionMessage.value = pick.text
+    reactionEmoji.value = pick.emoji
+  }
+
+  showReactionBubble.value = true
+  if (reactionTimer) clearTimeout(reactionTimer)
+  reactionTimer = setTimeout(() => {
+    showReactionBubble.value = false
+  }, 2600)
+}
 
 // 360° Camera Yaw (Default -0.55 rad = 3/4 side-front angle matching the reference images!)
 const yaw = ref(-0.55)
@@ -553,6 +625,9 @@ function onPointerUp(e) {
     }
     if (bestPin) {
       selectMuscle(bestPin.muscle_group)
+      triggerCharacterReaction(bestPin.muscle_group)
+    } else if (xPct >= 18 && xPct <= 82 && yPct >= 8 && yPct <= 92) {
+      triggerCharacterReaction(null)
     }
   }
 }
@@ -579,12 +654,13 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform float uYaw;
 uniform float uGender;      // 0.0 = Boy, 1.0 = Girl
-uniform int uAction;        // 0 = HURDLE, 1 = RUN, 2 = CURL, 3 = SQUAT, 4 = PRESS
+uniform int uAction;        // 0 = HURDLE, 1 = RUN, 2 = CURL, 3 = SQUAT, 4 = PRESS, 5 = STAND
 uniform float uShowGlow;
 uniform int uSelectedMuscle;
 uniform vec3 uMuscleStatus123; // x=CHEST(1), y=BACK(2), z=SHOULDERS(3)
 uniform vec3 uMuscleStatus456; // x=ARMS(4), y=CORE(5), z=LEGS(6)
 uniform vec3 uHeadCenter;
+uniform float uClickTime;
 
 // Smooth Minimum (Polynomial smin for seamless Blender 3D Clay blending!)
 float smin(float a, float b, float k) {
@@ -640,12 +716,12 @@ float sdRoundBox(vec3 p, vec3 b, float r) {
 }
 
 // Material IDs:
-// 1.0 = Skin
-// 2.0 = Hair
-// 3.0 = Eyes / Brows
-// 4.0 = Top (Boy Orange Shirt / Girl Purple Tank)
-// 5.0 = Shorts (Boy Blue Shorts / Girl Orange Shorts)
-// 6.0 = White Clay (Socks / Shoe Soles / Hurdle Bar)
+// 1.0 = Skin (Soft warm peach clay)
+// 2.0 = Hair (Dark Charcoal for Boy, Warm Chocolate Brown for Girl)
+// 3.0 = Eyes / Brows / Smile
+// 4.0 = Top (Boy Orange T-Shirt / Girl Lavender Tank)
+// 5.0 = Shorts (Boy Royal Blue Shorts / Girl Coral-Orange Shorts)
+// 6.0 = White Clay (Waistband Drawstrings / Wristbands / Socks / Shoe Soles / Hurdle Top)
 // 7.0 = Shoe Colored Upper
 // 8.0 = Dark Grey Prop (Hurdle Frame / Dumbbells)
 
@@ -674,6 +750,13 @@ HitInfo mapScene(vec3 p) {
   float bounceY = 0.0;
   float leanZ = 0.0;
 
+  // Interactive Click Elastic Spring Bounce
+  if (uClickTime < 1.4) {
+    float ct = uClickTime;
+    float spring = exp(-ct * 4.2) * sin(ct * 16.0) * 0.075;
+    bounceY += spring;
+  }
+
   vec3 lHip = vec3(-0.14, -0.08, 0.0);
   vec3 rHip = vec3( 0.14, -0.08, 0.0);
   vec3 lKnee = vec3(-0.15, -0.44, 0.03);
@@ -694,7 +777,7 @@ HitInfo mapScene(vec3 p) {
   if (uAction == 5) {
     // ACTION 5: NATURAL STANDING STRAIGHT (直立站姿 - 360° 全方位檢視各部位肌肉與體態)
     float breath = sin(t * 0.8) * 0.012;
-    bounceY = breath;
+    bounceY += breath;
     leanZ = 0.0;
 
     lHip = vec3(-0.14, -0.08 + bounceY, 0.0);
@@ -719,7 +802,7 @@ HitInfo mapScene(vec3 p) {
     // ACTION 0: HURDLE JUMP (Exact dynamic pose from Reference Image 1!)
     showHurdle = true;
     float jw = 0.5 + 0.5 * sin(t * 0.9);
-    bounceY = 0.14 + jw * 0.10;
+    bounceY += 0.14 + jw * 0.10;
     leanZ = 0.08;
 
     // Right leg kicks high & forward over hurdle; Left leg tucks back
@@ -741,7 +824,7 @@ HitInfo mapScene(vec3 p) {
   } else if (uAction == 1) {
     // ACTION 1: ENERGETIC RUN (Exact pose from Reference Images 2 & 3!)
     float s = sin(t * 1.4);
-    bounceY = abs(cos(t * 1.4)) * 0.06;
+    bounceY += abs(cos(t * 1.4)) * 0.06;
     leanZ = 0.05;
 
     lHip = vec3(-0.14, -0.08 + bounceY, 0.0);
@@ -764,7 +847,7 @@ HitInfo mapScene(vec3 p) {
     // ACTION 2: DUMBBELL BICEP CURL
     showDumbbells = true;
     float cw = 0.5 + 0.5 * sin(t * 1.3);
-    bounceY = sin(t * 1.3) * 0.015;
+    bounceY += sin(t * 1.3) * 0.015;
     lShoulder = vec3(-0.22, 0.30 + bounceY, 0.0);
     rShoulder = vec3( 0.22, 0.30 + bounceY, 0.0);
     lElbow = vec3(-0.28, 0.10 + bounceY, 0.04);
@@ -774,7 +857,7 @@ HitInfo mapScene(vec3 p) {
   } else if (uAction == 3) {
     // ACTION 3: SQUAT
     float sq = 0.5 + 0.5 * sin(t * 1.1);
-    bounceY = -sq * 0.24;
+    bounceY += -sq * 0.24;
     leanZ = sq * 0.08;
     lHip = vec3(-0.15, -0.08 + bounceY, -sq * 0.14);
     rHip = vec3( 0.15, -0.08 + bounceY, -sq * 0.14);
@@ -790,7 +873,7 @@ HitInfo mapScene(vec3 p) {
     // ACTION 4: OVERHEAD SHOULDER PRESS
     showDumbbells = true;
     float pw = 0.5 + 0.5 * sin(t * 1.2);
-    bounceY = pw * 0.02;
+    bounceY += pw * 0.02;
     lShoulder = vec3(-0.22, 0.30 + bounceY, 0.0);
     rShoulder = vec3( 0.22, 0.30 + bounceY, 0.0);
     lElbow = vec3(-0.32 + pw * 0.05, 0.26 + pw * 0.22 + bounceY, 0.02);
@@ -799,15 +882,23 @@ HitInfo mapScene(vec3 p) {
     rWrist = vec3( 0.28 - pw * 0.06, 0.48 + pw * 0.28 + bounceY, 0.04);
   }
 
+  // Interactive flex gesture on tap/click
+  if (uClickTime < 0.9) {
+    float cheerBlend = smoothstep(0.0, 0.15, uClickTime) * smoothstep(0.9, 0.4, uClickTime);
+    lElbow = mix(lElbow, vec3(-0.30, 0.16 + bounceY, 0.06), cheerBlend * 0.75);
+    rElbow = mix(rElbow, vec3( 0.30, 0.16 + bounceY, 0.06), cheerBlend * 0.75);
+    lWrist = mix(lWrist, vec3(-0.24, 0.28 + bounceY, 0.18), cheerBlend * 0.85);
+    rWrist = mix(rWrist, vec3( 0.24, 0.28 + bounceY, 0.18), cheerBlend * 0.85);
+  }
+
   vec3 pelvisCenter = (lHip + rHip) * 0.5 + vec3(0.0, 0.04, 0.0);
   vec3 chestCenter = vec3(0.0, 0.26 + bounceY, leanZ);
   vec3 neckTop = vec3(0.0, 0.42 + bounceY, leanZ);
   vec3 headCenter = vec3(0.0, 0.62 + bounceY, leanZ + 0.02);
 
   // ========================================================================
-  // 1. SKIN BASE: HEAD, EARS, NOSE, NECK, ARMS & LEGS
+  // 1. SKIN BASE: HEAD, EARS, NOSE, SMILE, NECK, ARMS & LEGS
   // ========================================================================
-  // Cute Chubby-Cheek 3D Clay Head (Cranium sphere + soft lower cheek ellipsoid)
   vec3 hp = p - headCenter;
   float dHead = smin(
     length(hp) - 0.225,
@@ -817,6 +908,11 @@ HitInfo mapScene(vec3 p) {
   // Cute Button Nose
   float dNose = length(hp - vec3(0.0, -0.02, 0.225)) - 0.036;
   dHead = smin(dHead, dNose, 0.022);
+
+  // Soft smiling mouth impression (cute dimples!)
+  vec3 mouthP = hp - vec3(0.0, -0.082, 0.208);
+  float dMouth = sdCapsule(mouthP, vec3(-0.038, 0.012, 0.0), vec3(0.038, 0.012, 0.0), 0.009);
+  dHead = smax(dHead, -dMouth, 0.008);
 
   // Cute Round C-Shaped Ears
   vec3 earP = vec3(abs(hp.x) - 0.225, hp.y + 0.015, hp.z + 0.01);
@@ -830,7 +926,7 @@ HitInfo mapScene(vec3 p) {
   float dSkinHeadNeck = smin(dHead, dNeck, 0.03);
   HitInfo res = HitInfo(dSkinHeadNeck, 1.0, 0);
 
-  // Seamless 3D Clay Arms (Shoulder -> Elbow -> Wrist + Cute Fist & Thumb)
+  // Seamless 3D Clay Arms & Hands
   float dArmL = smin(
     sdRoundCone(p, lShoulder, lElbow, 0.078, 0.070),
     sdRoundCone(p, lElbow, lWrist, 0.070, 0.058),
@@ -856,12 +952,16 @@ HitInfo mapScene(vec3 p) {
   dArmR = smin(dArmR, dHandR, 0.025);
 
   float dArms = min(dArmL, dArmR);
-  // Upper shoulder deltoid zone
   float dShoulders = min(length(p - lShoulder) - 0.095, length(p - rShoulder) - 0.095);
   res = opSmoothSkin(res, HitInfo(dShoulders, 1.0, 3), 0.03);
   res = opSmoothSkin(res, HitInfo(dArms, 1.0, 4), 0.025);
 
-  // Seamless 3D Clay Legs (Hip -> Knee -> Ankle)
+  // White Athletic Wristbands (Mat 6.0)
+  float dWbandL = sdRoundCone(p, mix(lElbow, lWrist, 0.82), lWrist, 0.068, 0.066);
+  float dWbandR = sdRoundCone(p, mix(rElbow, rWrist, 0.82), rWrist, 0.068, 0.066);
+  res = opU(res, HitInfo(min(dWbandL, dWbandR), 6.0, 0));
+
+  // Seamless 3D Clay Legs
   float dLegL = smin(
     sdRoundCone(p, lHip, lKnee, 0.102, 0.082),
     sdRoundCone(p, lKnee, lAnkle, 0.082, 0.064),
@@ -875,11 +975,14 @@ HitInfo mapScene(vec3 p) {
   res = opU(res, HitInfo(min(dLegL, dLegR), 1.0, 6));
 
   // ========================================================================
-  // 2. SPORTSWEAR: TOP (SHIRT / TANK) & SHORTS
+  // 2. SPORTSWEAR: TOP & SHORTS WITH ZERO-COLOR-BLEED SEPARATION
   // ========================================================================
+  float waistY = pelvisCenter.y + 0.052;
+
+  // Shirt / Tank (Mat 4.0)
   float dTorso = sdRoundCone(p, pelvisCenter, chestCenter, 0.165, 0.185);
   if (uGender < 0.5) {
-    // BOY: Orange T-Shirt with Short Sleeves
+    // Boy Orange T-Shirt sleeves
     vec3 lSleeveEnd = mix(lShoulder, lElbow, 0.46);
     vec3 rSleeveEnd = mix(rShoulder, rElbow, 0.46);
     float dSleeves = min(
@@ -888,29 +991,48 @@ HitInfo mapScene(vec3 p) {
     );
     dTorso = smin(dTorso, dSleeves, 0.035);
   } else {
-    // GIRL: Sculpted Sport Tank Top
+    // Girl sculpted tank
     float dBust = sdEllipsoid(p - (chestCenter + vec3(0.0, -0.02, 0.08)), vec3(0.16, 0.10, 0.10));
     dTorso = smin(dTorso, dBust, 0.04);
   }
-  // Assign torso muscle ID based on front/back/height (CHEST=1, BACK=2, CORE=5)
+
+  // Strictly clamp bottom of shirt above waist boundary
+  dTorso = smax(dTorso, -(p.y - (waistY - 0.006)), 0.008);
+  // Rolled hem at bottom of shirt
+  float dShirtHem = sdRoundBox(p - vec3(pelvisCenter.x, waistY + 0.014, pelvisCenter.z), vec3(0.176, 0.014, 0.146), 0.016);
+  dTorso = smin(dTorso, dShirtHem, 0.018);
+
   int torsoMuscle = (p.z < chestCenter.z - 0.02) ? 2 : ((p.y > pelvisCenter.y + 0.16) ? 1 : 5);
   res = opU(res, HitInfo(dTorso, 4.0, torsoMuscle));
 
-  // Shorts (Pelvis + Upper Thigh Cuffs)
+  // Shorts (Mat 5.0) - Strictly clamped below waist boundary
   vec3 lShortEnd = mix(lHip, lKnee, uGender > 0.5 ? 0.46 : 0.58);
   vec3 rShortEnd = mix(rHip, rKnee, uGender > 0.5 ? 0.46 : 0.58);
   float dShorts = smin(
-    sdEllipsoid(p - pelvisCenter, vec3(0.195, 0.135, 0.165)),
+    sdEllipsoid(p - pelvisCenter, vec3(0.192, 0.130, 0.162)),
     min(
       sdRoundCone(p, lHip, lShortEnd, 0.118, 0.106),
       sdRoundCone(p, rHip, rShortEnd, 0.118, 0.106)
     ),
     0.04
   );
+  dShorts = smax(dShorts, p.y - (waistY + 0.006), 0.008);
+
+  // Elastic waistband
+  float dWaistband = sdRoundBox(p - vec3(pelvisCenter.x, waistY - 0.016, pelvisCenter.z), vec3(0.180, 0.020, 0.150), 0.016);
+  dShorts = smin(dShorts, dWaistband, 0.016);
   res = opU(res, HitInfo(dShorts, 5.0, 6));
 
+  // White Athletic Drawstring Knot & Ties (Mat 6.0)
+  vec3 knotP = p - vec3(pelvisCenter.x, waistY - 0.015, pelvisCenter.z + 0.166);
+  float dKnot = length(knotP) - 0.020;
+  float dCordL = sdCapsule(knotP, vec3(-0.012, 0.0, 0.0), vec3(-0.025, -0.062, 0.018), 0.008);
+  float dCordR = sdCapsule(knotP, vec3( 0.012, 0.0, 0.0), vec3( 0.025, -0.062, 0.018), 0.008);
+  float dDrawstring = min(dKnot, min(dCordL, dCordR));
+  res = opU(res, HitInfo(dDrawstring, 6.0, 0));
+
   // ========================================================================
-  // 3. WHITE SOCKS & CHUNKY 3D SNEAKERS (Auto-oriented to shin angle!)
+  // 3. WHITE SOCKS & CHUNKY 3D SNEAKERS
   // ========================================================================
   vec3 lSockTop = mix(lAnkle, lKnee, 0.26);
   vec3 rSockTop = mix(rAnkle, rKnee, 0.26);
@@ -933,7 +1055,6 @@ HitInfo mapScene(vec3 p) {
   );
   res = opU(res, HitInfo(dShoeUpper, 7.0, 6));
 
-  // White Sneaker Laces & Cushioned Sole
   vec3 lMidShoe = mix(lAnkle, lToe, 0.50) - lCalfDir * 0.042;
   vec3 rMidShoe = mix(rAnkle, rToe, 0.50) - rCalfDir * 0.042;
   float dLaces = min(
@@ -951,11 +1072,10 @@ HitInfo mapScene(vec3 p) {
   // 4. 3D CLAY HAIR (BOY PUFFY BANGS vs GIRL FLOWING PONYTAIL)
   // ========================================================================
   float dHairCap = sdEllipsoid(hp - vec3(0.0, 0.05, -0.035), vec3(0.24, 0.22, 0.23));
-  // Cut away front face from hair cap
   dHairCap = smax(dHairCap, -(length(hp - vec3(0.0, -0.05, 0.14)) - 0.20), 0.03);
 
   if (uGender < 0.5) {
-    // BOY: Puffy 3D Clay Parted Bangs & Back Tuft (Reference Images 2 & 3)
+    // Boy: Puffy Parted Bangs & Back Tuft (Reference Images 2 & 3)
     float b1 = sdCapsule(hp, vec3(-0.14, 0.15, 0.12), vec3(-0.02, 0.20, 0.18), 0.068);
     float b2 = sdCapsule(hp, vec3( 0.01, 0.21, 0.14), vec3( 0.12, 0.17, 0.19), 0.076);
     float b3 = sdCapsule(hp, vec3( 0.12, 0.14, 0.12), vec3( 0.19, 0.07, 0.08), 0.058);
@@ -963,12 +1083,11 @@ HitInfo mapScene(vec3 p) {
     float dBoyHair = smin(dHairCap, smin(smin(b1, b2, 0.04), smin(b3, tuft, 0.03), 0.04), 0.04);
     res = opU(res, HitInfo(dBoyHair, 2.0, 0));
   } else {
-    // GIRL: Smooth Parted Bangs + Purple Scrunchie + S-Curved Bouncy Ponytail (Reference Image 1)
+    // Girl: Parted Bangs + Purple Scrunchie + S-Curved Bouncy Ponytail (Reference Image 1)
     float g1 = sdCapsule(hp, vec3(-0.02, 0.19, 0.16), vec3(-0.18, 0.08, 0.10), 0.062);
     float g2 = sdCapsule(hp, vec3( 0.02, 0.19, 0.16), vec3( 0.18, 0.08, 0.10), 0.062);
     float dGirlHair = smin(dHairCap, min(g1, g2), 0.04);
 
-    // Ponytail S-curve behind head
     float sway = sin(t * 1.4) * 0.05;
     vec3 pTie = vec3(0.0, 0.10, -0.22);
     vec3 pMid1 = vec3(0.0, 0.22 + sway * 0.4, -0.38);
@@ -1134,11 +1253,12 @@ void main() {
     // 2.0 Hair (Dark Charcoal for Boy, Warm Chocolate Brown for Girl)
     baseCol = (uGender < 0.5) ? vec3(0.20, 0.19, 0.21) : vec3(0.32, 0.18, 0.14);
   } else if (hit.mat > 2.5 && hit.mat < 3.5) {
-    // 3.0 Eyes & Brows (with cute white eye sparkle!)
+    // 3.0 Eyes & Brows (with dual-sparkle cute anime catchlights!)
     baseCol = vec3(0.10, 0.08, 0.08);
-    roughness = 0.18;
-    float sparkle = smoothstep(0.011, 0.005, length(vec2(abs(pos.x) - 0.072, pos.y - uHeadCenter.y - 0.022)));
-    baseCol = mix(baseCol, vec3(1.0), sparkle);
+    roughness = 0.16;
+    float sp1 = smoothstep(0.012, 0.005, length(vec2(abs(pos.x) - 0.072, pos.y - uHeadCenter.y - 0.022)));
+    float sp2 = smoothstep(0.007, 0.002, length(vec2(abs(pos.x) - 0.084, pos.y - uHeadCenter.y - 0.035)));
+    baseCol = mix(baseCol, vec3(1.0), max(sp1, sp2 * 0.85));
   } else if (hit.mat > 3.5 && hit.mat < 4.5) {
     // 4.0 Top (Vibrant Orange Shirt for Boy, Lavender-Purple Tank for Girl)
     baseCol = (uGender < 0.5) ? vec3(0.98, 0.56, 0.22) : vec3(0.72, 0.50, 0.92);
@@ -1146,7 +1266,7 @@ void main() {
     // 5.0 Shorts (Royal Blue Shorts for Boy, Coral-Orange Shorts for Girl)
     baseCol = (uGender < 0.5) ? vec3(0.23, 0.50, 0.96) : vec3(0.96, 0.42, 0.16);
   } else if (hit.mat > 5.5 && hit.mat < 6.5) {
-    // 6.0 White Clay (Socks / Soles / Hurdle Top with dark stripes like Reference Image 1!)
+    // 6.0 White Clay (Drawstrings / Wristbands / Socks / Soles / Hurdle Bar)
     baseCol = vec3(0.96, 0.97, 0.99);
     if (uAction == 0 && pos.y > -0.42 && pos.y < -0.28 && abs(abs(pos.x) - 0.22) < 0.055) {
       baseCol = vec3(0.36, 0.40, 0.46);
@@ -1159,30 +1279,49 @@ void main() {
     baseCol = vec3(0.38, 0.42, 0.48);
   }
 
-  // Muscle Recovery Thermal Subsurface Glow
+  // Muscle Recovery Thermal Subsurface Glow - LOCALIZED HOTSPOT RADAR (Doesn't dye garments!)
   vec3 glowEmission = vec3(0.0);
   if (uShowGlow > 0.5 && hit.muscle > 0) {
     float mStatus = 0.0;
-    if (hit.muscle == 1) mStatus = uMuscleStatus123.x;
-    else if (hit.muscle == 2) mStatus = uMuscleStatus123.y;
-    else if (hit.muscle == 3) mStatus = uMuscleStatus123.z;
-    else if (hit.muscle == 4) mStatus = uMuscleStatus456.x;
-    else if (hit.muscle == 5) mStatus = uMuscleStatus456.y;
-    else if (hit.muscle == 6) mStatus = uMuscleStatus456.z;
+    vec3 mCenter = vec3(0.0);
+
+    if (hit.muscle == 1) {
+      mStatus = uMuscleStatus123.x;
+      mCenter = vec3(0.0, 0.25, 0.18); // CHEST
+    } else if (hit.muscle == 2) {
+      mStatus = uMuscleStatus123.y;
+      mCenter = vec3(0.0, 0.24, -0.18); // BACK
+    } else if (hit.muscle == 3) {
+      mStatus = uMuscleStatus123.z;
+      mCenter = vec3(pos.x > 0.0 ? 0.22 : -0.22, 0.30, 0.0); // SHOULDERS
+    } else if (hit.muscle == 4) {
+      mStatus = uMuscleStatus456.x;
+      mCenter = vec3(pos.x > 0.0 ? 0.30 : -0.30, 0.08, 0.06); // ARMS
+    } else if (hit.muscle == 5) {
+      mStatus = uMuscleStatus456.y;
+      mCenter = vec3(0.0, 0.08, 0.16); // CORE
+    } else if (hit.muscle == 6) {
+      mStatus = uMuscleStatus456.z;
+      mCenter = vec3(pos.x > 0.0 ? 0.15 : -0.15, -0.30, 0.04); // LEGS (Quadriceps)
+    }
+
+    // Radial hotspot intensity so fabric keeps its saturated color outside the core
+    float distM = length(pos - mCenter);
+    float hotspotFactor = smoothstep(0.24, 0.04, distM);
 
     float pulse = 0.5 + 0.5 * sin(uTime * 5.0);
     if (mStatus > 1.5) {
       // FATIGUED (<45%): Pulsing Rose-Red Thermal Hotspot
-      baseCol = mix(baseCol, vec3(0.98, 0.25, 0.38), 0.58 + 0.15 * pulse);
-      glowEmission = vec3(0.45, 0.06, 0.12) * (0.6 + 0.4 * pulse);
+      baseCol = mix(baseCol, vec3(0.98, 0.25, 0.38), (0.55 + 0.15 * pulse) * hotspotFactor);
+      glowEmission = vec3(0.50, 0.06, 0.14) * (0.6 + 0.4 * pulse) * hotspotFactor;
     } else if (mStatus > 0.5) {
       // RECOVERING (45-84%): Warm Amber Glow
-      baseCol = mix(baseCol, vec3(0.98, 0.68, 0.12), 0.48);
-      glowEmission = vec3(0.28, 0.16, 0.02);
+      baseCol = mix(baseCol, vec3(0.98, 0.68, 0.12), 0.48 * hotspotFactor);
+      glowEmission = vec3(0.32, 0.18, 0.02) * hotspotFactor;
     } else if (hit.muscle == uSelectedMuscle) {
-      // SELECTED & RECOVERED: Emerald Readiness Highlight
-      baseCol = mix(baseCol, vec3(0.15, 0.85, 0.58), 0.38);
-      glowEmission = vec3(0.05, 0.25, 0.15);
+      // SELECTED & RECOVERED: Emerald Highlight
+      baseCol = mix(baseCol, vec3(0.15, 0.88, 0.58), 0.40 * hotspotFactor);
+      glowEmission = vec3(0.06, 0.30, 0.16) * hotspotFactor;
     }
   }
 
@@ -1194,7 +1333,7 @@ void main() {
   float ndl = dot(nor, keyLight);
   float wrapDiff = pow(ndl * 0.5 + 0.5, 1.35);
 
-  // Warm Subsurface Scattering (gives skin & clay that soft, translucent Pixar warmth!)
+  // Warm Subsurface Scattering (Pixar soft translucency)
   vec3 sssCol = vec3(0.98, 0.42, 0.28) * smoothstep(-0.4, 0.4, ndl) * (1.0 - max(0.0, ndl)) * 0.28;
 
   // Soft Specular Sheen
@@ -1275,7 +1414,8 @@ function initWebGL() {
     uSelectedMuscle: gl.getUniformLocation(program, 'uSelectedMuscle'),
     uMuscleStatus123: gl.getUniformLocation(program, 'uMuscleStatus123'),
     uMuscleStatus456: gl.getUniformLocation(program, 'uMuscleStatus456'),
-    uHeadCenter: gl.getUniformLocation(program, 'uHeadCenter')
+    uHeadCenter: gl.getUniformLocation(program, 'uHeadCenter'),
+    uClickTime: gl.getUniformLocation(program, 'uClickTime')
   }
   return true
 }
@@ -1353,6 +1493,8 @@ function renderLoop(timestamp = 0) {
   gl.uniform3f(uniforms.uMuscleStatus123, statusArr[1], statusArr[2], statusArr[3])
   gl.uniform3f(uniforms.uMuscleStatus456, statusArr[4], statusArr[5], statusArr[6])
   gl.uniform3f(uniforms.uHeadCenter, 0.0, headY, 0.02)
+  const clickSec = sec - clickBounceTime.value
+  gl.uniform1f(uniforms.uClickTime, clickSec >= 0 && clickSec < 10.0 ? clickSec : 999.0)
 
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 
@@ -1465,3 +1607,20 @@ function getSideCardStatusHint(m) {
   return '✅ 滿血備戰'
 }
 </script>
+
+<style scoped>
+.reaction-pop-enter-active {
+  transition: all 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reaction-pop-leave-active {
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reaction-pop-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 14px) scale(0.8);
+}
+.reaction-pop-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -12px) scale(0.9);
+}
+</style>

@@ -52,10 +52,10 @@ export function playTimerChime() {
   }
 }
 
-export function triggerVibration() {
+export function triggerVibration(pattern = [200, 100, 200, 100, 300]) {
   if ('vibrate' in navigator) {
     try {
-      navigator.vibrate([200, 100, 200, 100, 300])
+      navigator.vibrate(pattern)
     } catch (e) {
       console.log('Vibration error:', e)
     }
