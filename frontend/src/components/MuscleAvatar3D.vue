@@ -743,7 +743,7 @@ HitInfo opSmoothSkin(HitInfo a, HitInfo b, float k) {
   return HitInfo(d, mat, mus);
 }
 
-// Evaluate complete 3D Clay Character Scene
+// Evaluate complete 3D Clay Character Scene (Slender 6-Head Proportions & High-Detail Sculpt)
 HitInfo mapScene(vec3 p) {
   // Animation kinematics
   float t = uTime * 3.2;
@@ -753,399 +753,451 @@ HitInfo mapScene(vec3 p) {
   // Interactive Click Elastic Spring Bounce
   if (uClickTime < 1.4) {
     float ct = uClickTime;
-    float spring = exp(-ct * 4.2) * sin(ct * 16.0) * 0.075;
+    float spring = exp(-ct * 4.2) * sin(ct * 16.0) * 0.065;
     bounceY += spring;
   }
 
-  vec3 lHip = vec3(-0.14, -0.08, 0.0);
-  vec3 rHip = vec3( 0.14, -0.08, 0.0);
-  vec3 lKnee = vec3(-0.15, -0.44, 0.03);
-  vec3 rKnee = vec3( 0.15, -0.44, 0.03);
-  vec3 lAnkle = vec3(-0.16, -0.78, 0.0);
-  vec3 rAnkle = vec3( 0.16, -0.78, 0.0);
+  // Slender, long-limbed athletic proportions matching Reference Images 1 & 2
+  vec3 lHip = vec3(-0.095, -0.05, 0.0);
+  vec3 rHip = vec3( 0.095, -0.05, 0.0);
+  vec3 lKnee = vec3(-0.10, -0.43, 0.02);
+  vec3 rKnee = vec3( 0.10, -0.43, 0.02);
+  vec3 lAnkle = vec3(-0.105, -0.77, 0.0);
+  vec3 rAnkle = vec3( 0.105, -0.77, 0.0);
 
-  vec3 lShoulder = vec3(-0.22, 0.30, 0.0);
-  vec3 rShoulder = vec3( 0.22, 0.30, 0.0);
-  vec3 lElbow = vec3(-0.30, 0.12, -0.02);
-  vec3 rElbow = vec3( 0.30, 0.12, -0.02);
-  vec3 lWrist = vec3(-0.32, -0.06, 0.14);
-  vec3 rWrist = vec3( 0.32, -0.06, 0.14);
+  vec3 lShoulder = vec3(-0.165, 0.34, 0.0);
+  vec3 rShoulder = vec3( 0.165, 0.34, 0.0);
+  vec3 lElbow = vec3(-0.23, 0.14, -0.02);
+  vec3 rElbow = vec3( 0.23, 0.14, -0.02);
+  vec3 lWrist = vec3(-0.24, -0.05, 0.12);
+  vec3 rWrist = vec3( 0.24, -0.05, 0.12);
 
   bool showHurdle = false;
   bool showDumbbells = false;
 
   if (uAction == 5) {
-    // ACTION 5: NATURAL STANDING STRAIGHT (直立站姿 - 360° 全方位檢視各部位肌肉與體態)
-    float breath = sin(t * 0.8) * 0.012;
+    // ACTION 5: NATURAL STANDING STRAIGHT (直立站姿 - 修長體態 360° 檢視)
+    float breath = sin(t * 0.8) * 0.010;
     bounceY += breath;
     leanZ = 0.0;
 
-    lHip = vec3(-0.14, -0.08 + bounceY, 0.0);
-    rHip = vec3( 0.14, -0.08 + bounceY, 0.0);
+    lHip = vec3(-0.095, -0.05 + bounceY, 0.0);
+    rHip = vec3( 0.095, -0.05 + bounceY, 0.0);
 
-    // Natural straight legs planted on floor
-    lKnee = vec3(-0.14, -0.44 + bounceY, 0.01);
-    rKnee = vec3( 0.14, -0.44 + bounceY, 0.01);
-    lAnkle = vec3(-0.14, -0.78, 0.0);
-    rAnkle = vec3( 0.14, -0.78, 0.0);
+    lKnee = vec3(-0.098, -0.43 + bounceY, 0.01);
+    rKnee = vec3( 0.098, -0.43 + bounceY, 0.01);
+    lAnkle = vec3(-0.10, -0.77, 0.0);
+    rAnkle = vec3( 0.10, -0.77, 0.0);
 
-    // Upright natural shoulders
-    lShoulder = vec3(-0.21, 0.30 + bounceY, 0.0);
-    rShoulder = vec3( 0.21, 0.30 + bounceY, 0.0);
+    lShoulder = vec3(-0.165, 0.34 + bounceY, 0.0);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, 0.0);
 
-    // Natural arms hanging alongside the body with relaxed elbows and hands
-    lElbow = vec3(-0.28, 0.06 + bounceY, 0.01);
-    rElbow = vec3( 0.28, 0.06 + bounceY, 0.01);
-    lWrist = vec3(-0.26, -0.18 + bounceY + breath * 0.5, 0.04);
-    rWrist = vec3( 0.26, -0.18 + bounceY + breath * 0.5, 0.04);
+    lElbow = vec3(-0.215, 0.11 + bounceY, 0.01);
+    rElbow = vec3( 0.215, 0.11 + bounceY, 0.01);
+    lWrist = vec3(-0.205, -0.12 + bounceY + breath * 0.5, 0.04);
+    rWrist = vec3( 0.205, -0.12 + bounceY + breath * 0.5, 0.04);
   } else if (uAction == 0) {
-    // ACTION 0: HURDLE JUMP (Exact dynamic pose from Reference Image 1!)
+    // ACTION 0: HURDLE JUMP
     showHurdle = true;
     float jw = 0.5 + 0.5 * sin(t * 0.9);
-    bounceY += 0.14 + jw * 0.10;
-    leanZ = 0.08;
+    bounceY += 0.14 + jw * 0.09;
+    leanZ = 0.07;
 
-    // Right leg kicks high & forward over hurdle; Left leg tucks back
-    rHip = vec3(0.14, -0.08 + bounceY, 0.04);
-    rKnee = vec3(0.15, -0.04 + bounceY, 0.32);
-    rAnkle = vec3(0.15, -0.18 + bounceY, 0.62);
+    rHip = vec3(0.095, -0.05 + bounceY, 0.03);
+    rKnee = vec3(0.10, -0.02 + bounceY, 0.30);
+    rAnkle = vec3(0.10, -0.16 + bounceY, 0.58);
 
-    lHip = vec3(-0.14, -0.08 + bounceY, -0.04);
-    lKnee = vec3(-0.15, -0.40 + bounceY, -0.14);
-    lAnkle = vec3(-0.15, -0.34 + bounceY, -0.46);
+    lHip = vec3(-0.095, -0.05 + bounceY, -0.03);
+    lKnee = vec3(-0.10, -0.38 + bounceY, -0.14);
+    lAnkle = vec3(-0.10, -0.34 + bounceY, -0.44);
 
-    // Left arm punches forward, Right arm swings back
-    lShoulder = vec3(-0.21, 0.30 + bounceY, leanZ);
-    rShoulder = vec3( 0.21, 0.30 + bounceY, leanZ);
-    lElbow = vec3(-0.28, 0.20 + bounceY, 0.24);
-    lWrist = vec3(-0.20, 0.30 + bounceY, 0.44);
-    rElbow = vec3( 0.32, 0.24 + bounceY, -0.20);
-    rWrist = vec3( 0.38, 0.04 + bounceY, -0.26);
+    lShoulder = vec3(-0.165, 0.34 + bounceY, leanZ);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, leanZ);
+    lElbow = vec3(-0.23, 0.22 + bounceY, 0.22);
+    lWrist = vec3(-0.16, 0.32 + bounceY, 0.40);
+    rElbow = vec3( 0.25, 0.26 + bounceY, -0.18);
+    rWrist = vec3( 0.30, 0.08 + bounceY, -0.24);
   } else if (uAction == 1) {
-    // ACTION 1: ENERGETIC RUN (Exact pose from Reference Images 2 & 3!)
-    float s = sin(t * 1.4);
-    bounceY += abs(cos(t * 1.4)) * 0.06;
-    leanZ = 0.05;
+    // ACTION 1: ENERGETIC RUN (Exact dynamic stride from uploaded Reference Image 1!)
+    float s = sin(t * 1.35);
+    bounceY += abs(cos(t * 1.35)) * 0.055;
+    leanZ = 0.045;
 
-    lHip = vec3(-0.14, -0.08 + bounceY, 0.0);
-    rHip = vec3( 0.14, -0.08 + bounceY, 0.0);
+    lHip = vec3(-0.095, -0.05 + bounceY, 0.0);
+    rHip = vec3( 0.095, -0.05 + bounceY, 0.0);
 
-    lKnee = vec3(-0.15, -0.40 + bounceY + max(0.0, s) * 0.12, s * 0.24 + 0.04);
-    lAnkle = vec3(-0.15, -0.74 + bounceY + max(0.0, -s) * 0.16, s * 0.38 - 0.06);
+    lKnee = vec3(-0.10, -0.37 + bounceY + max(0.0, s) * 0.13, s * 0.25 + 0.04);
+    lAnkle = vec3(-0.10, -0.73 + bounceY + max(0.0, -s) * 0.18, s * 0.38 - 0.06);
 
-    rKnee = vec3( 0.15, -0.40 + bounceY + max(0.0, -s) * 0.12, -s * 0.24 + 0.04);
-    rAnkle = vec3( 0.15, -0.74 + bounceY + max(0.0, s) * 0.16, -s * 0.38 - 0.06);
+    rKnee = vec3( 0.10, -0.37 + bounceY + max(0.0, -s) * 0.13, -s * 0.25 + 0.04);
+    rAnkle = vec3( 0.10, -0.73 + bounceY + max(0.0, s) * 0.18, -s * 0.38 - 0.06);
 
-    lShoulder = vec3(-0.21, 0.30 + bounceY, leanZ);
-    rShoulder = vec3( 0.21, 0.30 + bounceY, leanZ);
-    lElbow = vec3(-0.28, 0.12 + bounceY, -s * 0.18);
-    lWrist = vec3(-0.24, 0.18 + bounceY + max(0.0, -s) * 0.10, -s * 0.26 + 0.16);
+    lShoulder = vec3(-0.165, 0.34 + bounceY, leanZ);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, leanZ);
+    lElbow = vec3(-0.23, 0.15 + bounceY, -s * 0.18);
+    lWrist = vec3(-0.19, 0.21 + bounceY + max(0.0, -s) * 0.10, -s * 0.26 + 0.15);
 
-    rElbow = vec3( 0.28, 0.12 + bounceY, s * 0.18);
-    rWrist = vec3( 0.24, 0.18 + bounceY + max(0.0, s) * 0.10, s * 0.26 + 0.16);
+    rElbow = vec3( 0.23, 0.15 + bounceY, s * 0.18);
+    rWrist = vec3( 0.19, 0.21 + bounceY + max(0.0, s) * 0.10, s * 0.26 + 0.15);
   } else if (uAction == 2) {
     // ACTION 2: DUMBBELL BICEP CURL
     showDumbbells = true;
     float cw = 0.5 + 0.5 * sin(t * 1.3);
-    bounceY += sin(t * 1.3) * 0.015;
-    lShoulder = vec3(-0.22, 0.30 + bounceY, 0.0);
-    rShoulder = vec3( 0.22, 0.30 + bounceY, 0.0);
-    lElbow = vec3(-0.28, 0.10 + bounceY, 0.04);
-    rElbow = vec3( 0.28, 0.10 + bounceY, 0.04);
-    lWrist = vec3(-0.28, -0.06 + cw * 0.28 + bounceY, 0.14 + sin(cw * 3.1415) * 0.14);
-    rWrist = vec3( 0.28, -0.06 + cw * 0.28 + bounceY, 0.14 + sin(cw * 3.1415) * 0.14);
+    bounceY += sin(t * 1.3) * 0.012;
+    lShoulder = vec3(-0.165, 0.34 + bounceY, 0.0);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, 0.0);
+    lElbow = vec3(-0.22, 0.13 + bounceY, 0.03);
+    rElbow = vec3( 0.22, 0.13 + bounceY, 0.03);
+    lWrist = vec3(-0.22, -0.03 + cw * 0.26 + bounceY, 0.13 + sin(cw * 3.1415) * 0.13);
+    rWrist = vec3( 0.22, -0.03 + cw * 0.26 + bounceY, 0.13 + sin(cw * 3.1415) * 0.13);
   } else if (uAction == 3) {
     // ACTION 3: SQUAT
     float sq = 0.5 + 0.5 * sin(t * 1.1);
-    bounceY += -sq * 0.24;
-    leanZ = sq * 0.08;
-    lHip = vec3(-0.15, -0.08 + bounceY, -sq * 0.14);
-    rHip = vec3( 0.15, -0.08 + bounceY, -sq * 0.14);
-    lKnee = vec3(-0.17, -0.44 + bounceY * 0.35, 0.05 + sq * 0.18);
-    rKnee = vec3( 0.17, -0.44 + bounceY * 0.35, 0.05 + sq * 0.18);
-    lShoulder = vec3(-0.22, 0.30 + bounceY, leanZ);
-    rShoulder = vec3( 0.22, 0.30 + bounceY, leanZ);
-    lElbow = vec3(-0.24, 0.16 + bounceY, 0.14 + sq * 0.12);
-    rElbow = vec3( 0.24, 0.16 + bounceY, 0.14 + sq * 0.12);
-    lWrist = vec3(-0.12, 0.20 + bounceY, 0.30 + sq * 0.16);
-    rWrist = vec3( 0.12, 0.20 + bounceY, 0.30 + sq * 0.16);
+    bounceY += -sq * 0.22;
+    leanZ = sq * 0.07;
+    lHip = vec3(-0.105, -0.05 + bounceY, -sq * 0.13);
+    rHip = vec3( 0.105, -0.05 + bounceY, -sq * 0.13);
+    lKnee = vec3(-0.12, -0.43 + bounceY * 0.35, 0.05 + sq * 0.17);
+    rKnee = vec3( 0.12, -0.43 + bounceY * 0.35, 0.05 + sq * 0.17);
+    lShoulder = vec3(-0.165, 0.34 + bounceY, leanZ);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, leanZ);
+    lElbow = vec3(-0.19, 0.18 + bounceY, 0.13 + sq * 0.11);
+    rElbow = vec3( 0.19, 0.18 + bounceY, 0.13 + sq * 0.11);
+    lWrist = vec3(-0.10, 0.23 + bounceY, 0.28 + sq * 0.14);
+    rWrist = vec3( 0.10, 0.23 + bounceY, 0.28 + sq * 0.14);
   } else {
     // ACTION 4: OVERHEAD SHOULDER PRESS
     showDumbbells = true;
     float pw = 0.5 + 0.5 * sin(t * 1.2);
-    bounceY += pw * 0.02;
-    lShoulder = vec3(-0.22, 0.30 + bounceY, 0.0);
-    rShoulder = vec3( 0.22, 0.30 + bounceY, 0.0);
-    lElbow = vec3(-0.32 + pw * 0.05, 0.26 + pw * 0.22 + bounceY, 0.02);
-    rElbow = vec3( 0.32 - pw * 0.05, 0.26 + pw * 0.22 + bounceY, 0.02);
-    lWrist = vec3(-0.28 + pw * 0.06, 0.48 + pw * 0.28 + bounceY, 0.04);
-    rWrist = vec3( 0.28 - pw * 0.06, 0.48 + pw * 0.28 + bounceY, 0.04);
+    bounceY += pw * 0.018;
+    lShoulder = vec3(-0.165, 0.34 + bounceY, 0.0);
+    rShoulder = vec3( 0.165, 0.34 + bounceY, 0.0);
+    lElbow = vec3(-0.26 + pw * 0.04, 0.28 + pw * 0.20 + bounceY, 0.02);
+    rElbow = vec3( 0.26 - pw * 0.04, 0.28 + pw * 0.20 + bounceY, 0.02);
+    lWrist = vec3(-0.22 + pw * 0.05, 0.48 + pw * 0.25 + bounceY, 0.03);
+    rWrist = vec3( 0.22 - pw * 0.05, 0.48 + pw * 0.25 + bounceY, 0.03);
   }
 
   // Interactive flex gesture on tap/click
   if (uClickTime < 0.9) {
     float cheerBlend = smoothstep(0.0, 0.15, uClickTime) * smoothstep(0.9, 0.4, uClickTime);
-    lElbow = mix(lElbow, vec3(-0.30, 0.16 + bounceY, 0.06), cheerBlend * 0.75);
-    rElbow = mix(rElbow, vec3( 0.30, 0.16 + bounceY, 0.06), cheerBlend * 0.75);
-    lWrist = mix(lWrist, vec3(-0.24, 0.28 + bounceY, 0.18), cheerBlend * 0.85);
-    rWrist = mix(rWrist, vec3( 0.24, 0.28 + bounceY, 0.18), cheerBlend * 0.85);
+    lElbow = mix(lElbow, vec3(-0.25, 0.20 + bounceY, 0.06), cheerBlend * 0.8);
+    rElbow = mix(rElbow, vec3( 0.25, 0.20 + bounceY, 0.06), cheerBlend * 0.8);
+    lWrist = mix(lWrist, vec3(-0.19, 0.34 + bounceY, 0.16), cheerBlend * 0.88);
+    rWrist = mix(rWrist, vec3( 0.19, 0.34 + bounceY, 0.16), cheerBlend * 0.88);
   }
 
-  vec3 pelvisCenter = (lHip + rHip) * 0.5 + vec3(0.0, 0.04, 0.0);
-  vec3 chestCenter = vec3(0.0, 0.26 + bounceY, leanZ);
-  vec3 neckTop = vec3(0.0, 0.42 + bounceY, leanZ);
-  vec3 headCenter = vec3(0.0, 0.62 + bounceY, leanZ + 0.02);
+  vec3 pelvisCenter = (lHip + rHip) * 0.5 + vec3(0.0, 0.03, 0.0);
+  vec3 chestCenter = vec3(0.0, 0.30 + bounceY, leanZ);
+  vec3 neckTop = vec3(0.0, 0.44 + bounceY, leanZ + 0.005);
+  vec3 headCenter = vec3(0.0, 0.575 + bounceY, leanZ + 0.015);
 
   // ========================================================================
-  // 1. SKIN BASE: HEAD, EARS, NOSE, SMILE, NECK, ARMS & LEGS
+  // 1. REFINED HEAD, SCULPTED JAWLINE, EARS, 3D NOSE & SLENDER NECK
   // ========================================================================
   vec3 hp = p - headCenter;
-  float dHead = smin(
-    length(hp) - 0.225,
-    sdEllipsoid(hp - vec3(0.0, -0.045, 0.02), vec3(0.225, 0.17, 0.205)),
-    0.06
+  // Sleek oval cranium + tapered lower jaw/cheeks (matches Reference Image 1!)
+  float dCranium = sdEllipsoid(hp - vec3(0.0, 0.022, 0.0), vec3(0.132, 0.145, 0.134));
+  float dJaw = sdEllipsoid(hp - vec3(0.0, -0.042, 0.014), vec3(0.116, 0.102, 0.116));
+  float dHead = smin(dCranium, dJaw, 0.042);
+
+  // Delicate 3D Sculpted Nose Bridge & Tip
+  float dNose = sdRoundCone(
+    hp,
+    vec3(0.0, 0.004, 0.122),
+    vec3(0.0, -0.016, 0.142),
+    0.014,
+    0.020
   );
-  // Cute Button Nose
-  float dNose = length(hp - vec3(0.0, -0.02, 0.225)) - 0.036;
-  dHead = smin(dHead, dNose, 0.022);
+  dHead = smin(dHead, dNose, 0.014);
 
-  // Soft smiling mouth impression (cute dimples!)
-  vec3 mouthP = hp - vec3(0.0, -0.082, 0.208);
-  float dMouth = sdCapsule(mouthP, vec3(-0.038, 0.012, 0.0), vec3(0.038, 0.012, 0.0), 0.009);
-  dHead = smax(dHead, -dMouth, 0.008);
+  // Refined C-Shaped Ears with inner concha hollow
+  vec3 earP = vec3(abs(hp.x) - 0.128, hp.y + 0.008, hp.z + 0.006);
+  float dEar = sdEllipsoid(earP, vec3(0.030, 0.044, 0.025));
+  float dEarHole = length(earP - vec3(0.006, 0.0, 0.016)) - 0.017;
+  dEar = smax(dEar, -dEarHole, 0.009);
+  dHead = smin(dHead, dEar, 0.012);
 
-  // Cute Round C-Shaped Ears
-  vec3 earP = vec3(abs(hp.x) - 0.225, hp.y + 0.015, hp.z + 0.01);
-  float dEar = sdEllipsoid(earP, vec3(0.055, 0.072, 0.045));
-  float dEarHole = length(earP - vec3(0.01, 0.0, 0.025)) - 0.028;
-  dEar = smax(dEar, -dEarHole, 0.015);
-  dHead = smin(dHead, dEar, 0.02);
-
-  // Neck
-  float dNeck = sdRoundCone(p, chestCenter, neckTop, 0.09, 0.078);
-  float dSkinHeadNeck = smin(dHead, dNeck, 0.03);
+  // Slender Athletic Neck
+  float dNeck = sdRoundCone(p, chestCenter + vec3(0.0, 0.05, 0.0), neckTop, 0.050, 0.044);
+  float dSkinHeadNeck = smin(dHead, dNeck, 0.016);
   HitInfo res = HitInfo(dSkinHeadNeck, 1.0, 0);
 
-  // Seamless 3D Clay Arms & Hands
+  // ========================================================================
+  // 2. SLENDER ARMS & ARTICULATED 5-FINGER HANDS (4 Fingers + Thumb!)
+  // ========================================================================
   float dArmL = smin(
-    sdRoundCone(p, lShoulder, lElbow, 0.078, 0.070),
-    sdRoundCone(p, lElbow, lWrist, 0.070, 0.058),
-    0.035
+    sdRoundCone(p, lShoulder, lElbow, 0.048, 0.042),
+    sdRoundCone(p, lElbow, lWrist, 0.041, 0.035),
+    0.014
   );
-  float dHandL = smin(
-    length(p - lWrist) - 0.076,
-    length(p - (lWrist + vec3(0.04, 0.02, 0.03))) - 0.036,
-    0.025
+  // Articulated Left Hand: Palm + 4 Curled Fingers + Thumb
+  vec3 lHandDir = normalize(lWrist - lElbow);
+  vec3 lPalmCenter = lWrist + lHandDir * 0.032;
+  float dPalmL = sdEllipsoid(p - lPalmCenter, vec3(0.036, 0.042, 0.034));
+  vec3 lp = p - lPalmCenter;
+  float dFingersL = min(
+    min(
+      sdCapsule(lp, vec3(0.012,  0.022,  0.012), vec3(0.026,  0.022, -0.014), 0.0115),
+      sdCapsule(lp, vec3(0.014,  0.007,  0.015), vec3(0.028,  0.007, -0.014), 0.012)
+    ),
+    min(
+      sdCapsule(lp, vec3(0.014, -0.008,  0.014), vec3(0.028, -0.008, -0.014), 0.0115),
+      sdCapsule(lp, vec3(0.011, -0.022,  0.011), vec3(0.024, -0.022, -0.012), 0.0105)
+    )
   );
-  dArmL = smin(dArmL, dHandL, 0.025);
+  float dThumbL = sdCapsule(lp, vec3(0.006, 0.018, 0.018), vec3(0.028, 0.034, 0.024), 0.013);
+  float dHandL = smin(dPalmL, min(dFingersL, dThumbL), 0.008);
+  dArmL = smin(dArmL, dHandL, 0.012);
 
   float dArmR = smin(
-    sdRoundCone(p, rShoulder, rElbow, 0.078, 0.070),
-    sdRoundCone(p, rElbow, rWrist, 0.070, 0.058),
-    0.035
+    sdRoundCone(p, rShoulder, rElbow, 0.048, 0.042),
+    sdRoundCone(p, rElbow, rWrist, 0.041, 0.035),
+    0.014
   );
-  float dHandR = smin(
-    length(p - rWrist) - 0.076,
-    length(p - (rWrist + vec3(-0.04, 0.02, 0.03))) - 0.036,
-    0.025
+  // Articulated Right Hand: Palm + 4 Curled Fingers + Thumb
+  vec3 rHandDir = normalize(rWrist - rElbow);
+  vec3 rPalmCenter = rWrist + rHandDir * 0.032;
+  float dPalmR = sdEllipsoid(p - rPalmCenter, vec3(0.036, 0.042, 0.034));
+  vec3 rp = p - rPalmCenter;
+  float dFingersR = min(
+    min(
+      sdCapsule(rp, vec3(-0.012,  0.022,  0.012), vec3(-0.026,  0.022, -0.014), 0.0115),
+      sdCapsule(rp, vec3(-0.014,  0.007,  0.015), vec3(-0.028,  0.007, -0.014), 0.012)
+    ),
+    min(
+      sdCapsule(rp, vec3(-0.014, -0.008,  0.014), vec3(-0.028, -0.008, -0.014), 0.0115),
+      sdCapsule(rp, vec3(-0.011, -0.022,  0.011), vec3(-0.024, -0.022, -0.012), 0.0105)
+    )
   );
-  dArmR = smin(dArmR, dHandR, 0.025);
+  float dThumbR = sdCapsule(rp, vec3(-0.006, 0.018, 0.018), vec3(-0.028, 0.034, 0.024), 0.013);
+  float dHandR = smin(dPalmR, min(dFingersR, dThumbR), 0.008);
+  dArmR = smin(dArmR, dHandR, 0.012);
 
   float dArms = min(dArmL, dArmR);
-  float dShoulders = min(length(p - lShoulder) - 0.095, length(p - rShoulder) - 0.095);
-  res = opSmoothSkin(res, HitInfo(dShoulders, 1.0, 3), 0.03);
-  res = opSmoothSkin(res, HitInfo(dArms, 1.0, 4), 0.025);
+  float dShoulders = min(length(p - lShoulder) - 0.058, length(p - rShoulder) - 0.058);
+  res = opSmoothSkin(res, HitInfo(dShoulders, 1.0, 3), 0.018);
+  res = opSmoothSkin(res, HitInfo(dArms, 1.0, 4), 0.014);
 
-  // White Athletic Wristbands (Mat 6.0)
-  float dWbandL = sdRoundCone(p, mix(lElbow, lWrist, 0.82), lWrist, 0.068, 0.066);
-  float dWbandR = sdRoundCone(p, mix(rElbow, rWrist, 0.82), rWrist, 0.068, 0.066);
-  res = opU(res, HitInfo(min(dWbandL, dWbandR), 6.0, 0));
-
-  // Seamless 3D Clay Legs
+  // ========================================================================
+  // 3. SLENDER LEGS (Thigh -> Knee -> Calf -> Ankle)
+  // ========================================================================
   float dLegL = smin(
-    sdRoundCone(p, lHip, lKnee, 0.102, 0.082),
-    sdRoundCone(p, lKnee, lAnkle, 0.082, 0.064),
-    0.04
+    sdRoundCone(p, lHip, lKnee, 0.058, 0.048),
+    sdRoundCone(p, lKnee, lAnkle, 0.047, 0.037),
+    0.018
   );
   float dLegR = smin(
-    sdRoundCone(p, rHip, rKnee, 0.102, 0.082),
-    sdRoundCone(p, rKnee, rAnkle, 0.082, 0.064),
-    0.04
+    sdRoundCone(p, rHip, rKnee, 0.058, 0.048),
+    sdRoundCone(p, rKnee, rAnkle, 0.047, 0.037),
+    0.018
   );
   res = opU(res, HitInfo(min(dLegL, dLegR), 1.0, 6));
 
   // ========================================================================
-  // 2. SPORTSWEAR: TOP & SHORTS WITH ZERO-COLOR-BLEED SEPARATION
+  // 4. TAILORED SPORTSWEAR: LAYERED T-SHIRT OVERHANG & CRISP SHORTS CUFFS
   // ========================================================================
-  float waistY = pelvisCenter.y + 0.052;
+  float shirtHemY = pelvisCenter.y + 0.045;
 
-  // Shirt / Tank (Mat 4.0)
-  float dTorso = sdRoundCone(p, pelvisCenter, chestCenter, 0.165, 0.185);
+  // Torso Garment (Mat 4.0) with natural 3D overhang over shorts
+  vec3 torsoBot = vec3(pelvisCenter.x, shirtHemY, pelvisCenter.z);
+  vec3 torsoTop = chestCenter + vec3(0.0, 0.06, 0.0);
+  // Elliptical cross-section torso (wider X than Z, just like a real T-shirt!)
+  vec3 tp = p;
+  tp.z *= 1.24;
+  vec3 tbScaled = vec3(torsoBot.x, torsoBot.y, torsoBot.z * 1.24);
+  vec3 ttScaled = vec3(torsoTop.x, torsoTop.y, torsoTop.z * 1.24);
+  float dTorso = sdRoundCone(tp, tbScaled, ttScaled, 0.146, 0.152) / 1.12;
+
+  // Clean flat shirt hem cut at shirtHemY
+  dTorso = smax(dTorso, -(p.y - shirtHemY), 0.010);
+
+  // Sculpted Crew-Neck Collar Rim
+  vec3 collarP = p - (torsoTop + vec3(0.0, 0.012, 0.005));
+  float dCollar = abs(length(collarP.xz) - 0.056) - 0.014;
+  dCollar = max(dCollar, abs(collarP.y) - 0.014);
+  dTorso = smin(dTorso, dCollar, 0.010);
+
   if (uGender < 0.5) {
-    // Boy Orange T-Shirt sleeves
-    vec3 lSleeveEnd = mix(lShoulder, lElbow, 0.46);
-    vec3 rSleeveEnd = mix(rShoulder, rElbow, 0.46);
-    float dSleeves = min(
-      sdRoundCone(p, lShoulder, lSleeveEnd, 0.096, 0.088),
-      sdRoundCone(p, rShoulder, rSleeveEnd, 0.096, 0.088)
-    );
-    dTorso = smin(dTorso, dSleeves, 0.035);
+    // Boy: Crisp Short Sleeves wider than the arm (creating real 3D sleeve cuff opening!)
+    vec3 lSleeveEnd = mix(lShoulder, lElbow, 0.52);
+    vec3 rSleeveEnd = mix(rShoulder, rElbow, 0.52);
+    float dSleeveL = sdRoundCone(p, lShoulder, lSleeveEnd, 0.064, 0.066);
+    float dSleeveR = sdRoundCone(p, rShoulder, rSleeveEnd, 0.064, 0.066);
+    // Flat cuff cut at sleeve ends
+    dSleeveL = smax(dSleeveL, dot(p - lSleeveEnd, normalize(lElbow - lShoulder)), 0.008);
+    dSleeveR = smax(dSleeveR, dot(p - rSleeveEnd, normalize(rElbow - rShoulder)), 0.008);
+    dTorso = smin(dTorso, min(dSleeveL, dSleeveR), 0.022);
   } else {
-    // Girl sculpted tank
-    float dBust = sdEllipsoid(p - (chestCenter + vec3(0.0, -0.02, 0.08)), vec3(0.16, 0.10, 0.10));
-    dTorso = smin(dTorso, dBust, 0.04);
+    // Girl: Fitted Athletic Tank Top
+    float dBust = sdEllipsoid(p - (chestCenter + vec3(0.0, -0.01, 0.055)), vec3(0.128, 0.082, 0.075));
+    dTorso = smin(dTorso, dBust, 0.025);
   }
-
-  // Strictly clamp bottom of shirt above waist boundary
-  dTorso = smax(dTorso, -(p.y - (waistY - 0.006)), 0.008);
-  // Rolled hem at bottom of shirt
-  float dShirtHem = sdRoundBox(p - vec3(pelvisCenter.x, waistY + 0.014, pelvisCenter.z), vec3(0.176, 0.014, 0.146), 0.016);
-  dTorso = smin(dTorso, dShirtHem, 0.018);
 
   int torsoMuscle = (p.z < chestCenter.z - 0.02) ? 2 : ((p.y > pelvisCenter.y + 0.16) ? 1 : 5);
   res = opU(res, HitInfo(dTorso, 4.0, torsoMuscle));
 
-  // Shorts (Mat 5.0) - Strictly clamped below waist boundary
-  vec3 lShortEnd = mix(lHip, lKnee, uGender > 0.5 ? 0.46 : 0.58);
-  vec3 rShortEnd = mix(rHip, rKnee, uGender > 0.5 ? 0.46 : 0.58);
-  float dShorts = smin(
-    sdEllipsoid(p - pelvisCenter, vec3(0.192, 0.130, 0.162)),
-    min(
-      sdRoundCone(p, lHip, lShortEnd, 0.118, 0.106),
-      sdRoundCone(p, rHip, rShortEnd, 0.118, 0.106)
-    ),
-    0.04
-  );
-  dShorts = smax(dShorts, p.y - (waistY + 0.006), 0.008);
+  // Tailored Athletic Shorts (Mat 5.0) - Tucked cleanly inside the shirt overhang!
+  vec3 lShortEnd = mix(lHip, lKnee, uGender > 0.5 ? 0.45 : 0.58);
+  vec3 rShortEnd = mix(rHip, rKnee, uGender > 0.5 ? 0.45 : 0.58);
 
-  // Elastic waistband
-  float dWaistband = sdRoundBox(p - vec3(pelvisCenter.x, waistY - 0.016, pelvisCenter.z), vec3(0.180, 0.020, 0.150), 0.016);
-  dShorts = smin(dShorts, dWaistband, 0.016);
+  float dShortLegL = sdRoundCone(p, lHip, lShortEnd, 0.080, 0.074);
+  float dShortLegR = sdRoundCone(p, rHip, rShortEnd, 0.080, 0.074);
+  // Crisp cuff cut perpendicular to the thigh so shorts look like real fabric tubes!
+  dShortLegL = smax(dShortLegL, dot(p - lShortEnd, normalize(lKnee - lHip)), 0.008);
+  dShortLegR = smax(dShortLegR, dot(p - rShortEnd, normalize(rKnee - rHip)), 0.008);
+
+  float dPelvisShorts = sdEllipsoid(p - (pelvisCenter - vec3(0.0, 0.01, 0.0)), vec3(0.134, 0.095, 0.106));
+  float dShorts = smin(dPelvisShorts, min(dShortLegL, dShortLegR), 0.025);
+  // Clamp top of shorts strictly below shirtHemY + 0.002 so it never pokes through the shirt
+  dShorts = smax(dShorts, p.y - (shirtHemY - 0.002), 0.006);
   res = opU(res, HitInfo(dShorts, 5.0, 6));
 
-  // White Athletic Drawstring Knot & Ties (Mat 6.0)
-  vec3 knotP = p - vec3(pelvisCenter.x, waistY - 0.015, pelvisCenter.z + 0.166);
-  float dKnot = length(knotP) - 0.020;
-  float dCordL = sdCapsule(knotP, vec3(-0.012, 0.0, 0.0), vec3(-0.025, -0.062, 0.018), 0.008);
-  float dCordR = sdCapsule(knotP, vec3( 0.012, 0.0, 0.0), vec3( 0.025, -0.062, 0.018), 0.008);
-  float dDrawstring = min(dKnot, min(dCordL, dCordR));
-  res = opU(res, HitInfo(dDrawstring, 6.0, 0));
-
   // ========================================================================
-  // 3. WHITE SOCKS & CHUNKY 3D SNEAKERS
+  // 5. CRISP WHITE ANKLE SOCKS & 3-LACE SNEAKERS (Exact Reference Image 1!)
   // ========================================================================
-  vec3 lSockTop = mix(lAnkle, lKnee, 0.26);
-  vec3 rSockTop = mix(rAnkle, rKnee, 0.26);
-  float dSocks = min(
-    sdRoundCone(p, lAnkle, lSockTop, 0.072, 0.074),
-    sdRoundCone(p, rAnkle, rSockTop, 0.072, 0.074)
-  );
-  res = opU(res, HitInfo(dSocks, 6.0, 6));
+  vec3 lSockTop = mix(lAnkle, lKnee, 0.22);
+  vec3 rSockTop = mix(rAnkle, rKnee, 0.22);
+  float dSockL = sdRoundCone(p, lAnkle, lSockTop, 0.044, 0.046);
+  float dSockR = sdRoundCone(p, rAnkle, rSockTop, 0.044, 0.046);
+  dSockL = smax(dSockL, dot(p - lSockTop, normalize(lKnee - lAnkle)), 0.005);
+  dSockR = smax(dSockR, dot(p - rSockTop, normalize(rKnee - rAnkle)), 0.005);
+  res = opU(res, HitInfo(min(dSockL, dSockR), 6.0, 6));
 
   vec3 lCalfDir = normalize(lAnkle - lKnee);
   vec3 rCalfDir = normalize(rAnkle - rKnee);
   vec3 lFootDir = normalize(vec3(0.0, lCalfDir.z, -lCalfDir.y));
   vec3 rFootDir = normalize(vec3(0.0, rCalfDir.z, -rCalfDir.y));
 
-  vec3 lToe = lAnkle + lFootDir * 0.165 + lCalfDir * 0.02;
-  vec3 rToe = rAnkle + rFootDir * 0.165 + rCalfDir * 0.02;
+  vec3 lToe = lAnkle + lFootDir * 0.145 + lCalfDir * 0.022;
+  vec3 rToe = rAnkle + rFootDir * 0.145 + rCalfDir * 0.022;
   float dShoeUpper = min(
-    sdRoundCone(p, lAnkle - lFootDir * 0.02, lToe, 0.082, 0.072),
-    sdRoundCone(p, rAnkle - rFootDir * 0.02, rToe, 0.082, 0.072)
+    sdRoundCone(p, lAnkle - lFootDir * 0.015, lToe, 0.056, 0.050),
+    sdRoundCone(p, rAnkle - rFootDir * 0.015, rToe, 0.056, 0.050)
   );
   res = opU(res, HitInfo(dShoeUpper, 7.0, 6));
 
-  vec3 lMidShoe = mix(lAnkle, lToe, 0.50) - lCalfDir * 0.042;
-  vec3 rMidShoe = mix(rAnkle, rToe, 0.50) - rCalfDir * 0.042;
-  float dLaces = min(
-    sdCapsule(p, lMidShoe + vec3(-0.042, 0.0, 0.0), lMidShoe + vec3(0.042, 0.0, 0.0), 0.018),
-    sdCapsule(p, rMidShoe + vec3(-0.042, 0.0, 0.0), rMidShoe + vec3(0.042, 0.0, 0.0), 0.018)
-  );
+  // 3 Crisp White Shoelace Bars across each shoe instep (Reference Image 1 & 2!)
+  float dLaces = 100.0;
+  for (int i = 0; i < 3; i++) {
+    float fi = 0.34 + float(i) * 0.16;
+    vec3 lLaceC = mix(lAnkle, lToe, fi) - lCalfDir * 0.038;
+    vec3 rLaceC = mix(rAnkle, rToe, fi) - rCalfDir * 0.038;
+    dLaces = min(dLaces, sdCapsule(p, lLaceC + vec3(-0.026, 0.0, 0.0), lLaceC + vec3(0.026, 0.0, 0.0), 0.0075));
+    dLaces = min(dLaces, sdCapsule(p, rLaceC + vec3(-0.026, 0.0, 0.0), rLaceC + vec3(0.026, 0.0, 0.0), 0.0075));
+  }
 
+  // Flat Cushioned White Outsole
   float dShoeSole = min(
-    sdRoundCone(p, lAnkle + lCalfDir * 0.048 - lFootDir * 0.025, lToe + lCalfDir * 0.042 + lFootDir * 0.015, 0.088, 0.080),
-    sdRoundCone(p, rAnkle + rCalfDir * 0.048 - rFootDir * 0.025, rToe + rCalfDir * 0.042 + rFootDir * 0.015, 0.088, 0.080)
+    sdRoundCone(p, lAnkle + lCalfDir * 0.036 - lFootDir * 0.018, lToe + lCalfDir * 0.032 + lFootDir * 0.010, 0.060, 0.054),
+    sdRoundCone(p, rAnkle + rCalfDir * 0.036 - rFootDir * 0.018, rToe + rCalfDir * 0.032 + rFootDir * 0.010, 0.060, 0.054)
   );
   res = opU(res, HitInfo(min(dShoeSole, dLaces), 6.0, 6));
 
   // ========================================================================
-  // 4. 3D CLAY HAIR (BOY PUFFY BANGS vs GIRL FLOWING PONYTAIL)
+  // 6. MULTI-LOCK SCULPTED 3D CLAY HAIR (Crisp Strand Grooves!)
   // ========================================================================
-  float dHairCap = sdEllipsoid(hp - vec3(0.0, 0.05, -0.035), vec3(0.24, 0.22, 0.23));
-  dHairCap = smax(dHairCap, -(length(hp - vec3(0.0, -0.05, 0.14)) - 0.20), 0.03);
+  // Back skull cap hugging the upper cranium
+  float dHairCap = sdEllipsoid(hp - vec3(0.0, 0.042, -0.022), vec3(0.144, 0.142, 0.146));
+  // Carve out face opening cleanly
+  dHairCap = smax(dHairCap, -(length(hp - vec3(0.0, -0.025, 0.085)) - 0.125), 0.018);
 
   if (uGender < 0.5) {
-    // Boy: Puffy Parted Bangs & Back Tuft (Reference Images 2 & 3)
-    float b1 = sdCapsule(hp, vec3(-0.14, 0.15, 0.12), vec3(-0.02, 0.20, 0.18), 0.068);
-    float b2 = sdCapsule(hp, vec3( 0.01, 0.21, 0.14), vec3( 0.12, 0.17, 0.19), 0.076);
-    float b3 = sdCapsule(hp, vec3( 0.12, 0.14, 0.12), vec3( 0.19, 0.07, 0.08), 0.058);
-    float tuft = sdCapsule(hp, vec3(0.0, 0.18, -0.16), vec3(0.0, 0.25, -0.24), 0.042);
-    float dBoyHair = smin(dHairCap, smin(smin(b1, b2, 0.04), smin(b3, tuft, 0.03), 0.04), 0.04);
+    // BOY: Multi-Lock Side-Parted Swept Hair (Exact Reference Image 1 & 2!)
+    // Lock 1: Front-right sweeping main pompadour lock
+    float lock1 = sdRoundCone(hp, vec3(-0.075, 0.125, 0.075), vec3(0.045, 0.155, 0.125), 0.038, 0.046);
+    // Lock 2: Upper-center layered sweeping lock
+    float lock2 = sdRoundCone(hp, vec3(-0.055, 0.152, 0.015), vec3(0.085, 0.162, 0.075), 0.042, 0.044);
+    // Lock 3: Far-right angled bang lock
+    float lock3 = sdRoundCone(hp, vec3(0.035, 0.140, 0.085), vec3(0.115, 0.105, 0.095), 0.036, 0.028);
+    // Lock 4: Left-parted side volume puff
+    float lock4 = sdRoundCone(hp, vec3(-0.075, 0.135, 0.045), vec3(-0.132, 0.075, 0.065), 0.038, 0.030);
+    // Sideburn temple locks in front of ears
+    float sideL = sdRoundCone(hp, vec3(-0.115, 0.095, 0.025), vec3(-0.130, 0.025, 0.020), 0.032, 0.020);
+    float sideR = sdRoundCone(hp, vec3( 0.115, 0.095, 0.025), vec3( 0.130, 0.025, 0.020), 0.032, 0.020);
+    // Back crown tuft
+    float tuft = sdCapsule(hp, vec3(0.0, 0.135, -0.105), vec3(0.0, 0.175, -0.150), 0.024);
+
+    // Small smin (0.014) preserves crisp grooves between individual hair locks!
+    float dLocks = smin(lock1, lock2, 0.014);
+    dLocks = smin(dLocks, lock3, 0.014);
+    dLocks = smin(dLocks, lock4, 0.014);
+    dLocks = smin(dLocks, min(sideL, sideR), 0.016);
+    dLocks = smin(dLocks, tuft, 0.016);
+    float dBoyHair = smin(dHairCap, dLocks, 0.018);
     res = opU(res, HitInfo(dBoyHair, 2.0, 0));
   } else {
-    // Girl: Parted Bangs + Purple Scrunchie + S-Curved Bouncy Ponytail (Reference Image 1)
-    float g1 = sdCapsule(hp, vec3(-0.02, 0.19, 0.16), vec3(-0.18, 0.08, 0.10), 0.062);
-    float g2 = sdCapsule(hp, vec3( 0.02, 0.19, 0.16), vec3( 0.18, 0.08, 0.10), 0.062);
-    float dGirlHair = smin(dHairCap, min(g1, g2), 0.04);
+    // GIRL: Sculpted Parted Bangs + Side Locks + Bouncy S-Curve Ponytail
+    float g1 = sdRoundCone(hp, vec3(-0.01, 0.148, 0.095), vec3(-0.125, 0.065, 0.065), 0.042, 0.030);
+    float g2 = sdRoundCone(hp, vec3( 0.01, 0.148, 0.095), vec3( 0.125, 0.065, 0.065), 0.042, 0.030);
+    float gTop = sdRoundCone(hp, vec3(-0.06, 0.155, 0.02), vec3(0.06, 0.155, 0.02), 0.040, 0.040);
+    float dGirlHair = smin(dHairCap, smin(min(g1, g2), gTop, 0.016), 0.018);
 
-    float sway = sin(t * 1.4) * 0.05;
-    vec3 pTie = vec3(0.0, 0.10, -0.22);
-    vec3 pMid1 = vec3(0.0, 0.22 + sway * 0.4, -0.38);
-    vec3 pMid2 = vec3(0.0, 0.14 + sway * 0.8, -0.54);
-    vec3 pTip  = vec3(0.0, 0.24 + sway, -0.66);
+    float sway = sin(t * 1.4) * 0.04;
+    vec3 pTie = vec3(0.0, 0.085, -0.145);
+    vec3 pMid1 = vec3(0.0, 0.175 + sway * 0.4, -0.26);
+    vec3 pMid2 = vec3(0.0, 0.115 + sway * 0.8, -0.38);
+    vec3 pTip  = vec3(0.0, 0.185 + sway, -0.47);
 
     float dPony = smin(
-      sdRoundCone(hp, pTie, pMid1, 0.065, 0.115),
+      sdRoundCone(hp, pTie, pMid1, 0.044, 0.078),
       smin(
-        sdRoundCone(hp, pMid1, pMid2, 0.115, 0.085),
-        sdRoundCone(hp, pMid2, pTip, 0.085, 0.032),
-        0.05
+        sdRoundCone(hp, pMid1, pMid2, 0.078, 0.058),
+        sdRoundCone(hp, pMid2, pTip, 0.058, 0.022),
+        0.032
       ),
-      0.05
+      0.032
     );
-    dGirlHair = smin(dGirlHair, dPony, 0.03);
+    dGirlHair = smin(dGirlHair, dPony, 0.020);
     res = opU(res, HitInfo(dGirlHair, 2.0, 0));
 
-    // Purple Scrunchie
-    float dScrunchie = length(hp - pTie) - 0.068;
+    // Scrunchie
+    float dScrunchie = length(hp - pTie) - 0.048;
     res = opU(res, HitInfo(dScrunchie, 4.0, 0));
   }
 
   // ========================================================================
-  // 5. CUTE EYES & EYEBROWS
+  // 7. EXPRESSIVE EYES, ARCHED BROWS & WARM CORAL SMILE (Mat 3.0 & 9.0)
   // ========================================================================
-  vec3 eyeP = vec3(abs(hp.x) - 0.078, hp.y - 0.015, hp.z - 0.205);
-  float dEyes = sdEllipsoid(eyeP, vec3(0.024, 0.036, 0.018));
-  vec3 browP = vec3(abs(hp.x) - 0.082, hp.y - 0.082, hp.z - 0.202);
-  float dBrows = sdCapsule(browP, vec3(-0.032, 0.0, 0.0), vec3(0.032, 0.006, 0.0), 0.014);
+  vec3 eyeP = vec3(abs(hp.x) - 0.046, hp.y - 0.008, hp.z - 0.122);
+  float dEyes = sdEllipsoid(eyeP, vec3(0.014, 0.021, 0.011));
+
+  // Thick, expressive arched eyebrows (Reference Image 1!)
+  vec3 browP = vec3(abs(hp.x) - 0.048, hp.y - 0.045 + (abs(hp.x) - 0.048) * 0.15, hp.z - 0.120);
+  float dBrows = sdCapsule(browP, vec3(-0.022, 0.002, 0.0), vec3(0.022, -0.003, 0.0), 0.0095);
   res = opU(res, HitInfo(min(dEyes, dBrows), 3.0, 0));
 
+  // Warm Terracotta/Coral-Red Smiling Mouth Curve (Mat 9.0 - Exact Reference Image 1!)
+  vec3 mouthP = hp - vec3(0.0, -0.056 + hp.x * hp.x * 2.8, 0.118);
+  float dMouth = sdCapsule(mouthP, vec3(-0.024, 0.0, 0.0), vec3(0.024, 0.0, 0.0), 0.0065);
+  res = opU(res, HitInfo(dMouth, 9.0, 0));
+
   // ========================================================================
-  // 6. PROPS: 3D HURDLE OR 3D DUMBBELLS
+  // 8. PROPS: 3D HURDLE OR 3D DUMBBELLS
   // ========================================================================
   if (showHurdle) {
-    float dBar = sdRoundBox(p - vec3(0.0, -0.36, 0.08), vec3(0.42, 0.042, 0.022), 0.015);
+    float dBar = sdRoundBox(p - vec3(0.0, -0.36, 0.08), vec3(0.38, 0.036, 0.018), 0.012);
     res = opU(res, HitInfo(dBar, 6.0, 0));
 
-    vec3 hpSym = vec3(abs(p.x) - 0.32, p.y, p.z);
-    float dPost = sdCapsule(hpSym, vec3(0.0, -0.38, 0.08), vec3(0.0, -0.82, 0.08), 0.028);
-    float dBase = sdCapsule(hpSym, vec3(0.0, -0.82, 0.14), vec3(0.0, -0.82, -0.26), 0.032);
+    vec3 hpSym = vec3(abs(p.x) - 0.29, p.y, p.z);
+    float dPost = sdCapsule(hpSym, vec3(0.0, -0.38, 0.08), vec3(0.0, -0.82, 0.08), 0.022);
+    float dBase = sdCapsule(hpSym, vec3(0.0, -0.82, 0.12), vec3(0.0, -0.82, -0.22), 0.025);
     res = opU(res, HitInfo(min(dPost, dBase), 8.0, 0));
   }
 
   if (showDumbbells) {
     float dbL = min(
-      sdCapsule(p, lWrist + vec3(-0.12, 0.0, 0.0), lWrist + vec3(0.12, 0.0, 0.0), 0.022),
+      sdCapsule(p, lPalmCenter + vec3(-0.09, 0.0, 0.0), lPalmCenter + vec3(0.09, 0.0, 0.0), 0.016),
       min(
-        sdEllipsoid(p - (lWrist + vec3(-0.11, 0.0, 0.0)), vec3(0.038, 0.085, 0.085)),
-        sdEllipsoid(p - (lWrist + vec3( 0.11, 0.0, 0.0)), vec3(0.038, 0.085, 0.085))
+        sdEllipsoid(p - (lPalmCenter + vec3(-0.085, 0.0, 0.0)), vec3(0.028, 0.065, 0.065)),
+        sdEllipsoid(p - (lPalmCenter + vec3( 0.085, 0.0, 0.0)), vec3(0.028, 0.065, 0.065))
       )
     );
     float dbR = min(
-      sdCapsule(p, rWrist + vec3(-0.12, 0.0, 0.0), rWrist + vec3(0.12, 0.0, 0.0), 0.022),
+      sdCapsule(p, rPalmCenter + vec3(-0.09, 0.0, 0.0), rPalmCenter + vec3(0.09, 0.0, 0.0), 0.016),
       min(
-        sdEllipsoid(p - (rWrist + vec3(-0.11, 0.0, 0.0)), vec3(0.038, 0.085, 0.085)),
-        sdEllipsoid(p - (rWrist + vec3( 0.11, 0.0, 0.0)), vec3(0.038, 0.085, 0.085))
+        sdEllipsoid(p - (rPalmCenter + vec3(-0.085, 0.0, 0.0)), vec3(0.028, 0.065, 0.065)),
+        sdEllipsoid(p - (rPalmCenter + vec3( 0.085, 0.0, 0.0)), vec3(0.028, 0.065, 0.065))
       )
     );
     res = opU(res, HitInfo(min(dbL, dbR), 8.0, 4));
