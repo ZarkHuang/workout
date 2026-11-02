@@ -97,10 +97,27 @@
           <span class="text-slate-400 text-[11px]">累積總容量:</span>
           <span class="font-black text-emerald-400 text-sm">{{ currentTotalVolume }} kg</span>
         </div>
-        <div class="flex items-center gap-1.5">
-          <span class="text-slate-400 text-[11px]">完成進度:</span>
-          <span class="font-bold text-white text-xs">{{ completedSetsCount }} / {{ totalSetsCount }} 組</span>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="showLive3DHotspot = !showLive3DHotspot"
+            class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all border"
+            :class="showLive3DHotspot ? 'bg-rose-500 text-white border-rose-400 shadow-xs' : 'bg-slate-800 text-rose-300 border-rose-500/40 hover:bg-slate-700'"
+          >
+            {{ showLive3DHotspot ? '🎭 收合 3D 熱點' : '🔥 3D 訓練部位熱點' }}
+          </button>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-400 text-[11px]">進度:</span>
+            <span class="font-bold text-white text-xs">{{ completedSetsCount }}/{{ totalSetsCount }}組</span>
+          </div>
         </div>
+      </div>
+
+      <!-- Collapsible Live 3D Muscle Hotspot View during Active Workout -->
+      <div v-if="showLive3DHotspot" class="pt-2">
+        <MuscleAvatar3D
+          :active-workout-muscles="activeTrainedMuscleGroups"
+        />
       </div>
     </div>
 
@@ -457,9 +474,21 @@ import {
 } from 'lucide-vue-next'
 import { useWorkoutStore, matchOrCreateExercise, normalizeExerciseName, isSetEffective } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
+import MuscleAvatar3D from '@/components/MuscleAvatar3D.vue'
 
 const router = useRouter()
 const workoutStore = useWorkoutStore()
+
+const showLive3DHotspot = ref(false)
+const activeTrainedMuscleGroups = computed(() => {
+  const set = new Set()
+  workoutStore.activeExercises.forEach(ex => {
+    if (ex.target_muscle_group) {
+      set.add(ex.target_muscle_group)
+    }
+  })
+  return Array.from(set)
+})
 
 const exerciseLibrary = ref([])
 const showAddExerciseModal = ref(false)

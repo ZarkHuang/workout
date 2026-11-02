@@ -5,14 +5,36 @@
         <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
           <Activity class="w-4 h-4" />
         </div>
-        <h3 class="font-bold text-slate-800 text-sm">肌肉修復狀態熱力圖</h3>
+        <div>
+          <h3 class="font-bold text-slate-800 text-sm">3D 肌肉修復與訓練熱點圖</h3>
+          <p class="text-[10px] text-slate-400">即時顯示各部位充血疲勞熱點與超補償進度</p>
+        </div>
       </div>
-      <button
-        @click="$emit('refresh')"
-        class="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1"
-      >
-        <RotateCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button
+          type="button"
+          @click="show3DAvatar = !show3DAvatar"
+          class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all border"
+          :class="show3DAvatar ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'"
+        >
+          {{ show3DAvatar ? '🎭 隱藏 3D 公仔' : '🎭 展開 3D 公仔' }}
+        </button>
+        <button
+          @click="$emit('refresh')"
+          class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 text-xs flex items-center gap-1"
+          title="重新整理修復狀態"
+        >
+          <RotateCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
+        </button>
+      </div>
+    </div>
+
+    <!-- 3D Cute Muscular Hotspot Figurine Stage -->
+    <div v-if="show3DAvatar" class="mb-3.5">
+      <MuscleAvatar3D
+        :muscles="overview?.muscles || []"
+        @recommend-split="$emit('recommend-split', $event)"
+      />
     </div>
 
     <!-- Recommendations & Avoid summary pills -->
@@ -96,7 +118,9 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Activity, RotateCw, Sparkles } from 'lucide-vue-next'
+import MuscleAvatar3D from '@/components/MuscleAvatar3D.vue'
 
 const props = defineProps({
   overview: {
@@ -109,7 +133,9 @@ const props = defineProps({
   }
 })
 
-defineEmits(['refresh'])
+defineEmits(['refresh', 'recommend-split'])
+
+const show3DAvatar = ref(true)
 
 function getShortLabel(labelZh) {
   if (!labelZh) return ''

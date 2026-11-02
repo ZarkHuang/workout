@@ -176,6 +176,7 @@
       :overview="recoveryOverview"
       :loading="loadingRecovery"
       @refresh="fetchRecovery"
+      @recommend-split="openAIRecommendModal($event)"
     />
 
     <!-- 5. Nutrition Macro Progress Card -->
