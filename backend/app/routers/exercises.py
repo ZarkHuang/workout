@@ -40,7 +40,7 @@ def list_exercises(
             )
         )
 
-    return query.order_by(Exercise.target_muscle_group, Exercise.name).all()
+    return query.order_by(Exercise.id).all()
 
 @router.post("", response_model=ExerciseOut)
 def create_custom_exercise(
@@ -48,10 +48,21 @@ def create_custom_exercise(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    clean_name = exercise_in.name.strip()
+    existing = db.query(Exercise).filter(
+        Exercise.name == clean_name,
+        or_(
+            Exercise.is_custom == False,
+            Exercise.created_by_user_id == current_user.id
+        )
+    ).first()
+    if existing:
+        return existing
+
     exercise = Exercise(
-        name=exercise_in.name,
+        name=clean_name,
         name_en=exercise_in.name_en,
-        target_muscle_group=exercise_in.target_muscle_group.upper(),
+        target_muscle_group=(exercise_in.target_muscle_group or "CHEST").upper(),
         secondary_muscle_group=exercise_in.secondary_muscle_group,
         equipment=exercise_in.equipment.upper() if exercise_in.equipment else "BARBELL",
         instructions=exercise_in.instructions,
@@ -62,6 +73,46 @@ def create_custom_exercise(
     db.commit()
     db.refresh(exercise)
     return exercise
+
+@router.put("/{exercise_id}", response_model=ExerciseOut)
+def update_custom_exercise(
+    exercise_id: int,
+    exercise_in: ExerciseCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    exercise = db.query(Exercise).filter(
+        Exercise.id == exercise_id,
+        Exercise.created_by_user_id == current_user.id
+    ).first()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="找不到該自訂動作或無權限修改")
+    exercise.name = exercise_in.name.strip()
+    exercise.name_en = exercise_in.name_en
+    exercise.target_muscle_group = (exercise_in.target_muscle_group or "CHEST").upper()
+    exercise.secondary_muscle_group = exercise_in.secondary_muscle_group
+    if exercise_in.equipment:
+        exercise.equipment = exercise_in.equipment.upper()
+    exercise.instructions = exercise_in.instructions
+    db.commit()
+    db.refresh(exercise)
+    return exercise
+
+@router.delete("/{exercise_id}")
+def delete_custom_exercise(
+    exercise_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    exercise = db.query(Exercise).filter(
+        Exercise.id == exercise_id,
+        Exercise.created_by_user_id == current_user.id
+    ).first()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="找不到該自訂動作或無法刪除系統內建動作")
+    db.delete(exercise)
+    db.commit()
+    return {"message": "自訂動作已成功刪除"}
 
 @router.get("/{exercise_id}", response_model=ExerciseOut)
 def get_exercise(
@@ -97,8 +148,8 @@ def get_previous_set_hint(
     pr_max_weight = float(pr_stats[0] or 0.0) if pr_stats else 0.0
     pr_max_1rm = float(pr_stats[1] or 0.0) if pr_stats else 0.0
 
-    # 2. Find the most recent set from the last completed session
-    recent_set = (
+    # 2. Find the most recent session containing this exercise for this user
+    last_session_set = (
         db.query(WorkoutSet)
         .join(WorkoutSession, WorkoutSet.session_id == WorkoutSession.id)
         .filter(
@@ -106,11 +157,11 @@ def get_previous_set_hint(
             WorkoutSet.exercise_id == exercise_id,
             WorkoutSet.is_completed == True
         )
-        .order_by(desc(WorkoutSession.created_at), desc(WorkoutSet.weight_kg))
+        .order_by(desc(WorkoutSession.created_at), desc(WorkoutSession.id), desc(WorkoutSet.id))
         .first()
     )
 
-    if not recent_set:
+    if not last_session_set:
         return {
             "exercise_id": exercise_id,
             "last_weight_kg": 0.0,
@@ -118,12 +169,37 @@ def get_previous_set_hint(
             "last_estimated_1rm": 0.0,
             "pr_max_weight_kg": 0.0,
             "pr_max_1rm": 0.0,
+            "last_sets": [],
             "suggestion": "初次記錄此動作，建議從輕重量熱身組開始抓感受度！"
         }
 
-    last_weight = recent_set.weight_kg
-    last_reps = recent_set.reps
-    last_1rm = recent_set.estimated_1rm or round(last_weight * (1 + last_reps / 30.0), 1)
+    # Fetch all sets of this exercise from that most recent session in order
+    session_sets = (
+        db.query(WorkoutSet)
+        .filter(
+            WorkoutSet.session_id == last_session_set.session_id,
+            WorkoutSet.exercise_id == exercise_id,
+            WorkoutSet.is_completed == True
+        )
+        .order_by(WorkoutSet.set_number, WorkoutSet.id)
+        .all()
+    )
+
+    last_sets_out = [
+        {
+            "set_number": idx + 1,
+            "weight_kg": float(s.weight_kg or 0.0),
+            "reps": int(s.reps or 0),
+            "estimated_1rm": float(s.estimated_1rm or round((s.weight_kg or 0.0) * (1 + (s.reps or 0) / 30.0), 1))
+        }
+        for idx, s in enumerate(session_sets)
+    ]
+
+    # Pick the best set from the last session for the summary banner
+    best_last_set = max(session_sets, key=lambda s: (s.weight_kg or 0.0, s.reps or 0)) if session_sets else last_session_set
+    last_weight = best_last_set.weight_kg
+    last_reps = best_last_set.reps
+    last_1rm = best_last_set.estimated_1rm or round(last_weight * (1 + last_reps / 30.0), 1)
     
     if last_reps >= 10:
         suggestion = f"上次達成 {last_weight}kg × {last_reps} 次！本次建議嘗試漸進式超負荷：加重 2.5kg ({last_weight + 2.5}kg) 做 8-10 次。"
@@ -137,5 +213,6 @@ def get_previous_set_hint(
         "last_estimated_1rm": last_1rm,
         "pr_max_weight_kg": pr_max_weight,
         "pr_max_1rm": pr_max_1rm,
+        "last_sets": last_sets_out,
         "suggestion": suggestion
     }

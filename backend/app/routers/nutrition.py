@@ -74,6 +74,34 @@ def add_meal(
     db.refresh(meal)
     return meal
 
+@router.put("/meals/{meal_id}", response_model=MealOut)
+def update_meal(
+    meal_id: int,
+    meal_in: MealCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    meal = db.query(MealLog).filter(
+        MealLog.id == meal_id,
+        MealLog.user_id == current_user.id
+    ).first()
+    if not meal:
+        raise HTTPException(status_code=404, detail="找不到此餐點紀錄")
+
+    if meal_in.meal_type:
+        meal.meal_type = meal_in.meal_type.upper()
+    meal.food_name = meal_in.food_name
+    meal.calories = meal_in.calories
+    meal.protein_g = meal_in.protein_g
+    meal.carbs_g = meal_in.carbs_g
+    meal.fat_g = meal_in.fat_g
+    if meal_in.meal_date:
+        meal.meal_date = meal_in.meal_date
+
+    db.commit()
+    db.refresh(meal)
+    return meal
+
 @router.delete("/meals/{meal_id}")
 def delete_meal(
     meal_id: int,
@@ -93,14 +121,14 @@ def delete_meal(
 
 @router.get("/weight", response_model=List[WeightLogOut])
 def get_weight_logs(
-    limit: int = 30,
+    limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return (
         db.query(WeightLog)
         .filter(WeightLog.user_id == current_user.id)
-        .order_by(desc(WeightLog.recorded_date))
+        .order_by(desc(WeightLog.recorded_date), desc(WeightLog.id))
         .limit(limit)
         .all()
     )
@@ -145,6 +173,22 @@ def record_weight(
     db.commit()
     db.refresh(w_log)
     return w_log
+
+@router.delete("/weight/{weight_id}")
+def delete_weight_log(
+    weight_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    w_log = db.query(WeightLog).filter(
+        WeightLog.id == weight_id,
+        WeightLog.user_id == current_user.id
+    ).first()
+    if not w_log:
+        raise HTTPException(status_code=404, detail="找不到此體重紀錄")
+    db.delete(w_log)
+    db.commit()
+    return {"message": "體重紀錄已刪除"}
 
 @router.post("/cleanup-30d-rolling")
 def perform_rolling_cleanup(

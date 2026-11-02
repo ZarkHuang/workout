@@ -22,7 +22,9 @@ class ExerciseOut(ExerciseBase):
         from_attributes = True
 
 class RoutineExerciseCreate(BaseModel):
-    exercise_id: int
+    exercise_id: Optional[int] = None
+    exercise_name: Optional[str] = None
+    target_muscle_group: Optional[str] = None
     target_sets: int = 3
     target_reps: int = 10
     order_index: int = 0
@@ -57,7 +59,9 @@ class RoutineOut(BaseModel):
         from_attributes = True
 
 class SetCreate(BaseModel):
-    exercise_id: int
+    exercise_id: Optional[int] = None
+    exercise_name: Optional[str] = None
+    target_muscle_group: Optional[str] = None
     set_number: int
     weight_kg: float
     reps: int
@@ -118,6 +122,12 @@ class MuscleRecoveryOverview(BaseModel):
     recommended_focus: List[str]
     avoid_muscles: List[str]
 
+class PreviousSetItem(BaseModel):
+    set_number: int
+    weight_kg: float
+    reps: int
+    estimated_1rm: float = 0.0
+
 class PreviousSetHint(BaseModel):
     exercise_id: int
     last_weight_kg: float
@@ -125,4 +135,5 @@ class PreviousSetHint(BaseModel):
     last_estimated_1rm: float
     pr_max_weight_kg: float = 0.0
     pr_max_1rm: float = 0.0
+    last_sets: List[PreviousSetItem] = []
     suggestion: str # e.g. "上次達成 60kg x 10，本次建議挑戰 62.5kg x 8-10 或加 1 組"

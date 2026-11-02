@@ -62,7 +62,7 @@ class WorkoutSession(Base):
 
     user = relationship("User", back_populates="sessions")
     routine = relationship("WorkoutRoutine", back_populates="sessions")
-    sets = relationship("WorkoutSet", back_populates="session", cascade="all, delete-orphan", order_by="WorkoutSet.set_number")
+    sets = relationship("WorkoutSet", back_populates="session", cascade="all, delete-orphan", order_by="WorkoutSet.id")
 
 class WorkoutSet(Base):
     __tablename__ = "workout_sets"

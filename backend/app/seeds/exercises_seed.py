@@ -52,6 +52,22 @@ GOLDEN_EXERCISES = [
         "instructions": "手肘固定微彎，雙手如同抱大樹般向兩側張開，在最底端感受胸肌大幅伸展後合攏。"
     },
     {
+        "name": "上斜槓鈴臥推",
+        "name_en": "Incline Barbell Bench Press",
+        "target_muscle_group": "CHEST",
+        "secondary_muscle_group": "SHOULDERS,ARMS",
+        "equipment": "BARBELL",
+        "instructions": "椅背調整約 30 度，槓鈴下放至鎖骨下方約 2-3 公分處，專注打造飽滿鎖骨上胸。"
+    },
+    {
+        "name": "蝴蝶機夾胸",
+        "name_en": "Pec Deck / Machine Fly",
+        "target_muscle_group": "CHEST",
+        "secondary_muscle_group": "SHOULDERS",
+        "equipment": "MACHINE",
+        "instructions": "手肘微彎貼緊靠墊或握把，利用胸大肌向內孤立收縮夾緊，頂峰停頓 1 秒。"
+    },
+    {
         "name": "標準伏地挺身",
         "name_en": "Standard Push-Up",
         "target_muscle_group": "CHEST",
@@ -110,6 +126,14 @@ GOLDEN_EXERCISES = [
         "instructions": "背部挺直微挺胸，雙手將 V 字把手拉至下腹部，肩胛骨完整後收夾緊。"
     },
     {
+        "name": "窄握反手高位下拉",
+        "name_en": "Close-Grip / Underhand Lat Pulldown",
+        "target_muscle_group": "BACK",
+        "secondary_muscle_group": "ARMS",
+        "equipment": "CABLE",
+        "instructions": "採用反手與肩同寬或 V 把握距，手肘貼近身體兩側下拉至下胸，強化下背闊肌。"
+    },
+    {
         "name": "直臂繩索下壓",
         "name_en": "Straight-Arm Cable Pulldown",
         "target_muscle_group": "BACK",
@@ -166,6 +190,22 @@ GOLDEN_EXERCISES = [
         "secondary_muscle_group": "",
         "equipment": "MACHINE",
         "instructions": "骨盆緊貼墊子，發力勾向臀部，專注強化腿後側膕繩肌群。"
+    },
+    {
+        "name": "槓鈴臀推 (Hip Thrust)",
+        "name_en": "Barbell Hip Thrust",
+        "target_muscle_group": "LEGS",
+        "secondary_muscle_group": "CORE",
+        "equipment": "BARBELL",
+        "instructions": "上背靠於臥推椅邊緣，槓鈴置於髖部，臀大肌發力將髖部頂起至軀幹平行地面，頂峰夾臀。"
+    },
+    {
+        "name": "哈克深蹲 (Hack Squat)",
+        "name_en": "Machine Hack Squat",
+        "target_muscle_group": "LEGS",
+        "secondary_muscle_group": "CORE",
+        "equipment": "MACHINE",
+        "instructions": "背部緊貼滑動靠墊，雙腳踩穩踏板，控制下蹲深度精準刺激股四頭肌。"
     },
     {
         "name": "站姿槓鈴提踵 (練小腿)",

@@ -231,11 +231,11 @@ SPLIT_TEMPLATES = {
         "rationale": "專注於闊背肌肌纖維走向，以垂直拉與單臂拉伸為主軸，最大化背部展開寬度與翅膀視覺效果。",
         "warmup_tips": ["滑輪直臂下壓 20 次預先激活闊背", "懸垂肩胛下壓 12 次", "動態背部伸展"],
         "exercises": [
-            AIRoutineExerciseItem(exercise_name="滑輪高位下拉 (寬握)", target_muscle_group="BACK", target_sets=4, target_reps="8-10", suggested_weight_kg=50.0, notes="專注闊背外側拉伸與收縮，大臂內夾"),
-            AIRoutineExerciseItem(exercise_name="滑輪高位下拉 (窄握反手/V把)", target_muscle_group="BACK", target_sets=4, target_reps="10-12", suggested_weight_kg=45.0, notes="長運動行程，強化闊背下部深度收縮"),
-            AIRoutineExerciseItem(exercise_name="站姿繩索直臂下壓", target_muscle_group="BACK", target_sets=4, target_reps="12-15", suggested_weight_kg=20.0, notes="孤立闊背肌，手肘微彎鎖定，頂峰擠壓 1 秒"),
+            AIRoutineExerciseItem(exercise_name="滑輪高位下拉", target_muscle_group="BACK", target_sets=4, target_reps="8-10", suggested_weight_kg=50.0, notes="寬握專注闊背外側拉伸與收縮，大臂內夾"),
+            AIRoutineExerciseItem(exercise_name="窄握反手高位下拉", target_muscle_group="BACK", target_sets=4, target_reps="10-12", suggested_weight_kg=45.0, notes="長運動行程，強化闊背下部深度收縮"),
+            AIRoutineExerciseItem(exercise_name="直臂繩索下壓", target_muscle_group="BACK", target_sets=4, target_reps="12-15", suggested_weight_kg=20.0, notes="孤立闊背肌，手肘微彎鎖定，頂峰擠壓 1 秒"),
             AIRoutineExerciseItem(exercise_name="單臂啞鈴划船", target_muscle_group="BACK", target_sets=3, target_reps="10-12", suggested_weight_kg=22.0, notes="弧線拉向髖關節，底部充分放展"),
-            AIRoutineExerciseItem(exercise_name="啞鈴斜板二頭彎舉", target_muscle_group="ARMS", target_sets=3, target_reps="10-12", suggested_weight_kg=12.0, notes="二頭肌長頭拉伸收尾")
+            AIRoutineExerciseItem(exercise_name="坐姿啞鈴斜板彎舉", target_muscle_group="ARMS", target_sets=3, target_reps="10-12", suggested_weight_kg=12.0, notes="二頭肌長頭拉伸收尾")
         ],
         "cooldown_tips": ["雙手抓住立柱側身拉伸闊背肌 45 秒", "吊單槓懸垂拉伸 40 秒"]
     },
@@ -262,7 +262,7 @@ SPLIT_TEMPLATES = {
             AIRoutineExerciseItem(exercise_name="上斜槓鈴臥推", target_muscle_group="CHEST", target_sets=4, target_reps="6-8", suggested_weight_kg=50.0, notes="椅背約 30 度，槓鈴下落至鎖骨下方 2 公分"),
             AIRoutineExerciseItem(exercise_name="上斜啞鈴臥推", target_muscle_group="CHEST", target_sets=4, target_reps="8-10", suggested_weight_kg=20.0, notes="頂峰主動夾胸，離心感受上胸強烈拉伸"),
             AIRoutineExerciseItem(exercise_name="槓鈴平板臥推", target_muscle_group="CHEST", target_sets=3, target_reps="8-10", suggested_weight_kg=55.0, notes="複合維持中胸厚度"),
-            AIRoutineExerciseItem(exercise_name="低位繩索上拉夾胸 (滑輪飛鳥)", target_muscle_group="CHEST", target_sets=4, target_reps="12-15", suggested_weight_kg=12.5, notes="滑輪置於最低處，雙手沿上斜角度向上夾緊胸肌上部"),
+            AIRoutineExerciseItem(exercise_name="繩索夾胸 (滑輪飛鳥)", target_muscle_group="CHEST", target_sets=4, target_reps="12-15", suggested_weight_kg=12.5, notes="滑輪置於最低處，雙手沿上斜角度向上夾緊胸肌上部"),
             AIRoutineExerciseItem(exercise_name="三頭繩索高位下壓", target_muscle_group="ARMS", target_sets=3, target_reps="12-15", suggested_weight_kg=20.0, notes="推力三頭收尾")
         ],
         "cooldown_tips": ["手扶門框上胸伸展 45 秒", "胸大肌靠牆伸展 30 秒"]
