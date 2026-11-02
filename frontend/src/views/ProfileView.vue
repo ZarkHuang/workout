@@ -277,7 +277,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Sparkles, Save, LogOut, Flame } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -287,22 +287,28 @@ const router = useRouter()
 const authStore = useAuthStore()
 const nutritionStore = useNutritionStore()
 const saving = ref(false)
-const isAutoRecalc = ref(localStorage.getItem('fitpulse_custom_macros_mode') !== 'manual')
+
+function getMacrosStorageKey() {
+  const uid = authStore.user?.id
+  return uid ? `fitpulse_custom_macros_mode_${uid}` : 'fitpulse_custom_macros_mode'
+}
+
+const isAutoRecalc = ref(localStorage.getItem(getMacrosStorageKey()) !== 'manual')
 
 const form = reactive({
-  name: '',
-  gender: 'FEMALE',
-  age: 26,
-  height_cm: 160,
-  current_weight_kg: 52,
-  target_weight_kg: 50,
-  fitness_goal: 'CUTTING',
-  experience_level: 'INTERMEDIATE',
-  activity_level: 'MODERATE',
-  target_calories: 1450,
-  target_protein_g: 94,
-  target_carbs_g: 170,
-  target_fat_g: 45
+  name: authStore.user?.name || '',
+  gender: authStore.profile?.gender || 'MALE',
+  age: authStore.profile?.age ?? 26,
+  height_cm: authStore.profile?.height_cm ?? 175,
+  current_weight_kg: authStore.profile?.current_weight_kg ?? 70,
+  target_weight_kg: authStore.profile?.target_weight_kg ?? 72,
+  fitness_goal: authStore.profile?.fitness_goal || 'BULKING',
+  experience_level: authStore.profile?.experience_level || 'INTERMEDIATE',
+  activity_level: authStore.profile?.activity_level || 'MODERATE',
+  target_calories: authStore.profile?.target_calories ?? 2400,
+  target_protein_g: authStore.profile?.target_protein_g ?? 140,
+  target_carbs_g: authStore.profile?.target_carbs_g ?? 280,
+  target_fat_g: authStore.profile?.target_fat_g ?? 65
 })
 
 function getGoalText(goal) {
@@ -401,13 +407,16 @@ function handleFormChange() {
 
 function setAutoRecalc(val) {
   isAutoRecalc.value = val
-  localStorage.setItem('fitpulse_custom_macros_mode', val ? 'auto' : 'manual')
+  localStorage.setItem(getMacrosStorageKey(), val ? 'auto' : 'manual')
   if (val) {
     handleFormChange()
   }
 }
 
 function syncProfile() {
+  const key = getMacrosStorageKey()
+  isAutoRecalc.value = localStorage.getItem(key) !== 'manual'
+
   form.name = authStore.user?.name || ''
   const p = authStore.profile
   if (!p) return
@@ -430,7 +439,7 @@ function syncProfile() {
   const diffProt = Math.abs((Number(p.target_protein_g) || 0) - liveStats.value.proteinG)
   if (diffCals > 5 || diffProt > 1) {
     isAutoRecalc.value = false
-    localStorage.setItem('fitpulse_custom_macros_mode', 'manual')
+    localStorage.setItem(getMacrosStorageKey(), 'manual')
   }
 }
 
@@ -441,7 +450,15 @@ async function saveProfile() {
       handleFormChange()
     }
     const payload = {
-      ...form,
+      name: form.name?.trim() || '',
+      gender: form.gender || 'MALE',
+      age: Number(form.age) || 26,
+      height_cm: Number(form.height_cm) || 175,
+      current_weight_kg: Number(form.current_weight_kg) || 70,
+      target_weight_kg: Number(form.target_weight_kg) || 72,
+      fitness_goal: form.fitness_goal || 'BULKING',
+      experience_level: form.experience_level || 'INTERMEDIATE',
+      activity_level: form.activity_level || 'MODERATE',
       target_calories: Math.round(Number(form.target_calories) || liveStats.value.targetCals),
       target_protein_g: Number(form.target_protein_g) || 0,
       target_carbs_g: Number(form.target_carbs_g) || 0,
@@ -466,7 +483,20 @@ function handleLogout() {
   }
 }
 
-onMounted(() => {
+watch(
+  () => authStore.profile,
+  (newProfile) => {
+    if (newProfile) {
+      syncProfile()
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+onMounted(async () => {
+  if (!authStore.profile) {
+    await authStore.fetchMe()
+  }
   syncProfile()
 })
 </script>

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import { workoutsAPI, exercisesAPI } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 import { sendRestNotification, playTimerChime, triggerVibration } from '@/utils/notifications'
 
 export function normalizeExerciseName(name) {
@@ -236,8 +237,8 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   function syncUserOwnership(userId) {
     if (!userId) return
-    if (ownerUserId.value && ownerUserId.value !== userId) {
-      // Different account logged in -> clear previous account's unsaved workout draft!
+    if (isWorkoutActive.value && ownerUserId.value !== userId) {
+      // Unsaved workout draft was created by a different account or has invalid owner -> purge it!
       cancelWorkout()
     }
     ownerUserId.value = userId
@@ -245,6 +246,8 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   // Start new workout session
   function startWorkout(name = '今日自訂訓練', routine = null) {
+    const authStore = useAuthStore()
+    ownerUserId.value = authStore.user?.id || null
     isWorkoutActive.value = true
     sessionName.value = name
     routineId.value = routine?.id || null
@@ -384,6 +387,8 @@ export const useWorkoutStore = defineStore('workout', () => {
   // Start workout directly from a past history session (1-click Repeat Session with actual weights & reps!)
   function startWorkoutFromHistorySession(historySession) {
     if (!historySession) return
+    const authStore = useAuthStore()
+    ownerUserId.value = authStore.user?.id || null
     isWorkoutActive.value = true
     sessionName.value = historySession.session_name || '歷史菜單重練'
     routineId.value = historySession.routine_id || null

@@ -2,30 +2,15 @@
   <div class="rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-sm relative select-none">
     <!-- Top Bar: Boy / Girl Switcher & 360° Camera Controls -->
     <div class="px-3 pt-3 pb-2 flex items-center justify-between gap-1.5 flex-wrap border-b border-slate-100 bg-slate-50/80">
-      <!-- Boy / Girl 3D Clay Character Switcher -->
-      <div class="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
-        <button
-          type="button"
-          @click="setGender('MALE')"
-          class="px-2.5 py-1 rounded-lg text-[11px] font-black transition-all whitespace-nowrap flex items-center gap-1"
-          :class="gender === 'MALE'
-            ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-xs'
-            : 'text-slate-600 hover:text-slate-900'"
-        >
-          <span>👦</span>
-          <span>陽光運動男</span>
-        </button>
-        <button
-          type="button"
-          @click="setGender('FEMALE')"
-          class="px-2.5 py-1 rounded-lg text-[11px] font-black transition-all whitespace-nowrap flex items-center gap-1"
-          :class="gender === 'FEMALE'
-            ? 'bg-gradient-to-r from-purple-500 to-orange-500 text-white shadow-xs'
-            : 'text-slate-600 hover:text-slate-900'"
-        >
-          <span>👧</span>
-          <span>活力馬尾女</span>
-        </button>
+      <!-- Automatic Character Badge based on User Profile Gender -->
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+        <span class="text-sm">{{ isFemale ? '👧' : '👦' }}</span>
+        <span class="text-xs font-black text-slate-800">
+          {{ isFemale ? '活力馬尾女' : '熱血格鬥肌霸' }}
+        </span>
+        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-500">
+          3D 即時體態
+        </span>
       </div>
 
       <!-- 3D View Angle, Thermal Glow Toggle & Auto-Spin Controls -->
@@ -336,15 +321,11 @@ defineEmits(['recommend-split'])
 
 const authStore = useAuthStore()
 
-// Gender selection: MALE (陽光運動男) vs FEMALE (活力馬尾女)
-const savedGender = localStorage.getItem('fitpulse_avatar_gender')
-const initialGender = savedGender || (authStore.profile?.gender === 'FEMALE' ? 'FEMALE' : 'MALE')
-const gender = ref(initialGender === 'FEMALE' ? 'FEMALE' : 'MALE')
-
-function setGender(g) {
-  gender.value = g
-  localStorage.setItem('fitpulse_avatar_gender', g)
-}
+// Gender is automatically derived from the user's profile settings (no manual toggle needed)
+const isFemale = computed(() => {
+  return authStore.profile?.gender === 'FEMALE'
+})
+const gender = computed(() => (isFemale.value ? 'FEMALE' : 'MALE'))
 
 // 6 Cute 3D Clay Workout Animations
 const workoutActions = [
@@ -1365,7 +1346,7 @@ function renderLoop(timestamp = 0) {
   gl.uniform2f(uniforms.uResolution, w, h)
   gl.uniform1f(uniforms.uTime, sec)
   gl.uniform1f(uniforms.uYaw, yaw.value)
-  gl.uniform1f(uniforms.uGender, gender.value === 'FEMALE' ? 1.0 : 0.0)
+  gl.uniform1f(uniforms.uGender, isFemale.value ? 1.0 : 0.0)
   gl.uniform1i(uniforms.uAction, actId)
   gl.uniform1f(uniforms.uShowGlow, showHotspotGlow.value ? 1.0 : 0.0)
   gl.uniform1i(uniforms.uSelectedMuscle, MUSCLE_INDEX[selectedMuscleGroup.value] || 1)
