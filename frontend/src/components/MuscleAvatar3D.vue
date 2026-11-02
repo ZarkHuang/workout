@@ -104,55 +104,148 @@
         class="w-full h-full object-contain"
       ></canvas>
 
-      <!-- Floating Muscle Hotspot Pills (3D Projected to Screen) -->
-      <button
-        v-for="pin in projectedMusclePins"
-        :key="pin.muscle_group"
-        type="button"
-        @pointerdown.stop
-        @click.stop="selectMuscle(pin.muscle_group)"
-        class="absolute -translate-x-1/2 -translate-y-1/2 group focus:outline-none z-10 transition-all duration-150"
-        :style="{ left: pin.xPct + '%', top: pin.yPct + '%', opacity: pin.visible ? 1 : 0.25 }"
+      <!-- Top-Center Compact Legend Overlay (Unobtrusive) -->
+      <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 bg-white/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs z-20 text-[9px] font-bold text-slate-600 whitespace-nowrap">
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>疲勞(&lt;45%)</span>
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>修復中</span>
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>滿血待命</span>
+      </div>
+
+      <!-- SVG Dynamic Leader Lines (Connects left/right cards directly to 3D character body points) -->
+      <svg
+        class="absolute inset-0 w-full h-full pointer-events-none z-10"
+        :viewBox="`0 0 ${stageSize.w} ${stageSize.h}`"
       >
-        <span
-          v-if="pin.status === 'FATIGUED' || selectedMuscleGroup === pin.muscle_group"
-          class="absolute -inset-1.5 rounded-full animate-ping opacity-55"
-          :class="getPinRingClass(pin.status)"
-        ></span>
-        <div
-          class="relative flex items-center gap-1 px-2 py-0.5 rounded-full border shadow-md transition-transform duration-150 group-hover:scale-110"
+        <g v-for="line in leaderLines" :key="line.key">
+          <!-- Connecting curved leader line -->
+          <path
+            :d="line.path"
+            :stroke="line.stroke"
+            :stroke-width="line.isSelected ? 2.0 : 1.2"
+            :stroke-dasharray="line.visible ? 'none' : '3,3'"
+            :opacity="line.isSelected ? 0.95 : (line.visible ? 0.55 : 0.22)"
+            fill="none"
+          />
+          <!-- Anchor dot at side card -->
+          <circle
+            :cx="line.cardX"
+            :cy="line.cardY"
+            :r="line.isSelected ? 3.0 : 2.0"
+            :fill="line.stroke"
+            :opacity="line.visible ? 0.9 : 0.35"
+          />
+          <!-- Target indicator dot on 3D body -->
+          <circle
+            :cx="line.bodyX"
+            :cy="line.bodyY"
+            :r="line.isSelected ? 4.2 : 2.8"
+            :fill="line.stroke"
+            :opacity="line.visible ? 1.0 : 0.35"
+          />
+          <!-- Pulsing ping ring on body for fatigued or selected muscle -->
+          <circle
+            v-if="(line.isSelected || line.status === 'FATIGUED') && line.visible"
+            :cx="line.bodyX"
+            :cy="line.bodyY"
+            r="6.5"
+            :stroke="line.stroke"
+            fill="none"
+            class="animate-ping"
+          />
+        </g>
+      </svg>
+
+      <!-- Left Column Cards: SHOULDERS, CHEST, CORE (Placed on the left, clear of character!) -->
+      <div class="absolute left-2 inset-y-6 w-20 sm:w-26 flex flex-col justify-around z-20 pointer-events-auto">
+        <button
+          v-for="m in leftMuscles"
+          :key="m.muscle_group"
+          type="button"
+          @pointerdown.stop
+          @click.stop="selectMuscle(m.muscle_group)"
+          class="group flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-xl border transition-all duration-150 active:scale-95 text-left shadow-2xs backdrop-blur-xs select-none cursor-pointer"
           :class="[
-            getPinBadgeClass(pin.status),
-            selectedMuscleGroup === pin.muscle_group ? 'ring-2 ring-slate-900 scale-110' : 'opacity-95 hover:opacity-100'
+            selectedMuscleGroup === m.muscle_group
+              ? 'bg-slate-900 text-white border-slate-900 shadow-sm ring-2 ring-slate-900/20 scale-105'
+              : getSideCardClass(m.status)
           ]"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-          <span class="text-[9px] font-black tracking-tight whitespace-nowrap">
-            {{ pin.shortLabel }} {{ pin.recovery_percentage }}%
-          </span>
-        </div>
-      </button>
+          <span
+            class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            :class="selectedMuscleGroup === m.muscle_group ? 'bg-emerald-400 animate-pulse' : getDotClass(m.status)"
+          ></span>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <span
+                class="text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap"
+                :class="selectedMuscleGroup === m.muscle_group ? 'text-white' : 'text-slate-800'"
+              >
+                {{ m.shortLabel }}
+              </span>
+              <span
+                class="text-[9px] font-black whitespace-nowrap px-1 py-0.2 rounded"
+                :class="selectedMuscleGroup === m.muscle_group ? 'bg-white/20 text-emerald-300' : getPctBadgeClass(m.status)"
+              >
+                {{ m.recovery_percentage }}%
+              </span>
+            </div>
+            <span
+              class="text-[8px] sm:text-[9px] font-medium truncate"
+              :class="selectedMuscleGroup === m.muscle_group ? 'text-slate-300' : 'text-slate-500'"
+            >
+              {{ getSideCardStatusHint(m) }}
+            </span>
+          </div>
+        </button>
+      </div>
 
-      <!-- Top-Left Legend Overlay -->
-      <div class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-xs border border-slate-200/80 rounded-xl p-2 space-y-1 pointer-events-none shadow-2xs z-10">
-        <div class="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">訓練熱點狀態</div>
-        <div class="flex items-center gap-1.5 text-[10px]">
-          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]"></span>
-          <span class="text-rose-700 font-bold">充血疲勞 (&lt;45%)</span>
-        </div>
-        <div class="flex items-center gap-1.5 text-[10px]">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"></span>
-          <span class="text-amber-700 font-bold">修復中 (45-84%)</span>
-        </div>
-        <div class="flex items-center gap-1.5 text-[10px]">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></span>
-          <span class="text-emerald-700 font-bold">滿血待命 (≥85%)</span>
-        </div>
+      <!-- Right Column Cards: BACK, ARMS, LEGS (Placed on the right, clear of character!) -->
+      <div class="absolute right-2 inset-y-6 w-20 sm:w-26 flex flex-col justify-around z-20 pointer-events-auto">
+        <button
+          v-for="m in rightMuscles"
+          :key="m.muscle_group"
+          type="button"
+          @pointerdown.stop
+          @click.stop="selectMuscle(m.muscle_group)"
+          class="group flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-xl border transition-all duration-150 active:scale-95 text-left shadow-2xs backdrop-blur-xs select-none cursor-pointer"
+          :class="[
+            selectedMuscleGroup === m.muscle_group
+              ? 'bg-slate-900 text-white border-slate-900 shadow-sm ring-2 ring-slate-900/20 scale-105'
+              : getSideCardClass(m.status)
+          ]"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            :class="selectedMuscleGroup === m.muscle_group ? 'bg-emerald-400 animate-pulse' : getDotClass(m.status)"
+          ></span>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <span
+                class="text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap"
+                :class="selectedMuscleGroup === m.muscle_group ? 'text-white' : 'text-slate-800'"
+              >
+                {{ m.shortLabel }}
+              </span>
+              <span
+                class="text-[9px] font-black whitespace-nowrap px-1 py-0.2 rounded"
+                :class="selectedMuscleGroup === m.muscle_group ? 'bg-white/20 text-emerald-300' : getPctBadgeClass(m.status)"
+              >
+                {{ m.recovery_percentage }}%
+              </span>
+            </div>
+            <span
+              class="text-[8px] sm:text-[9px] font-medium truncate"
+              :class="selectedMuscleGroup === m.muscle_group ? 'text-slate-300' : 'text-slate-500'"
+            >
+              {{ getSideCardStatusHint(m) }}
+            </span>
+          </div>
+        </button>
       </div>
 
       <!-- Bottom Drag Hint -->
-      <div class="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none bg-slate-900/75 backdrop-blur-xs px-3 py-0.5 rounded-full text-[10px] text-white font-medium whitespace-nowrap shadow-xs">
-        ↔️ 左右拖曳可 360° 無死角旋轉 · 點擊部位切換運動展示
+      <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-slate-900/75 backdrop-blur-xs px-3 py-0.5 rounded-full text-[10px] text-white font-medium whitespace-nowrap shadow-xs z-20">
+        ↔️ 左右拖曳可 360° 旋轉 · 點擊兩側部位連動
       </div>
     </div>
 
@@ -340,6 +433,70 @@ const activeMuscleDetail = computed(() => {
 function canRecommendSplit(muscleGroup) {
   return ['CHEST', 'BACK', 'SHOULDERS', 'LEGS'].includes(muscleGroup)
 }
+
+const stageSize = ref({ w: 400, h: 330 })
+
+const LEFT_KEYS = ['SHOULDERS', 'CHEST', 'CORE']
+const RIGHT_KEYS = ['BACK', 'ARMS', 'LEGS']
+
+const leftMuscles = computed(() => {
+  return LEFT_KEYS.map(k => normalizedMuscles.value.find(m => m.muscle_group === k)).filter(Boolean)
+})
+
+const rightMuscles = computed(() => {
+  return RIGHT_KEYS.map(k => normalizedMuscles.value.find(m => m.muscle_group === k)).filter(Boolean)
+})
+
+function getStatusColor(status) {
+  if (status === 'FATIGUED') return '#f43f5e'
+  if (status === 'RECOVERING') return '#f59e0b'
+  return '#10b981'
+}
+
+const leaderLines = computed(() => {
+  const sw = stageSize.value.w || 400
+  const sh = stageSize.value.h || 330
+  const leftCardX = Math.min(Math.max(sw * 0.22, 76), 104)
+  const rightCardX = sw - Math.min(Math.max(sw * 0.22, 76), 104)
+  const usableH = Math.max(sh - 48, 180)
+
+  const leftSlots = { SHOULDERS: 0, CHEST: 1, CORE: 2 }
+  const rightSlots = { BACK: 0, ARMS: 1, LEGS: 2 }
+
+  const lines = []
+  normalizedMuscles.value.forEach(m => {
+    const isLeft = m.muscle_group in leftSlots
+    const slot = isLeft ? leftSlots[m.muscle_group] : rightSlots[m.muscle_group]
+    if (slot === undefined) return
+
+    const cardY = 24 + usableH * ((slot * 2 + 1) / 6)
+    const cardX = isLeft ? leftCardX : rightCardX
+
+    const pin = projectedMusclePins.value.find(p => p.muscle_group === m.muscle_group)
+    const bodyX = pin ? (pin.xPct / 100) * sw : sw * 0.5
+    const bodyY = pin ? (pin.yPct / 100) * sh : cardY
+    const visible = pin ? pin.visible : true
+    const isSelected = selectedMuscleGroup.value === m.muscle_group
+
+    const midX = cardX + (bodyX - cardX) * 0.45
+    const path = `M ${cardX.toFixed(1)} ${cardY.toFixed(1)} C ${midX.toFixed(1)} ${cardY.toFixed(1)}, ${midX.toFixed(1)} ${bodyY.toFixed(1)}, ${bodyX.toFixed(1)} ${bodyY.toFixed(1)}`
+
+    lines.push({
+      key: m.muscle_group,
+      muscle_group: m.muscle_group,
+      cardX,
+      cardY,
+      bodyX,
+      bodyY,
+      path,
+      stroke: getStatusColor(m.status),
+      status: m.status,
+      visible,
+      isSelected
+    })
+  })
+  return lines
+})
 
 function rotateToAngle(angleRad) {
   autoRotate.value = false
@@ -1157,9 +1314,15 @@ function renderLoop(timestamp = 0) {
   const canvas = glCanvasRef.value
   if (!canvas || !gl || !program) return
 
+  const clientW = canvas.clientWidth || 400
+  const clientH = canvas.clientHeight || 330
+  if (stageSize.value.w !== clientW || stageSize.value.h !== clientH) {
+    stageSize.value = { w: clientW, h: clientH }
+  }
+
   const dpr = Math.min(window.devicePixelRatio || 2, 2.0)
-  const w = Math.floor((canvas.clientWidth || 400) * dpr)
-  const h = Math.floor((canvas.clientHeight || 330) * dpr)
+  const w = Math.floor(clientW * dpr)
+  const h = Math.floor(clientH * dpr)
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w
     canvas.height = h
@@ -1301,5 +1464,23 @@ function getHotspotStatusLabel(status) {
   if (status === 'FATIGUED') return '🔥 充血疲勞熱點'
   if (status === 'RECOVERING') return '⏳ 超補償修復中'
   return '✅ 滿血可進攻'
+}
+
+function getSideCardClass(status) {
+  if (status === 'FATIGUED') return 'bg-rose-50/95 border-rose-300 text-rose-950 hover:bg-rose-100 shadow-rose-200/50'
+  if (status === 'RECOVERING') return 'bg-amber-50/95 border-amber-300 text-amber-950 hover:bg-amber-100 shadow-amber-200/50'
+  return 'bg-white/95 border-slate-200 text-slate-800 hover:bg-slate-100 shadow-slate-200/40'
+}
+
+function getPctBadgeClass(status) {
+  if (status === 'FATIGUED') return 'bg-rose-100 text-rose-700'
+  if (status === 'RECOVERING') return 'bg-amber-100 text-amber-800'
+  return 'bg-emerald-100 text-emerald-700'
+}
+
+function getSideCardStatusHint(m) {
+  if (m.status === 'FATIGUED') return '🔥 充血疲勞'
+  if (m.status === 'RECOVERING') return '⏳ 修復中'
+  return '✅ 滿血備戰'
 }
 </script>
