@@ -17,9 +17,60 @@ from app.schemas.ai import (
     AIChatRequest, AIChatResponse
 )
 from app.routers.auth import get_current_user
-from app.routers.workouts import get_muscle_recovery_status
+from app.routers.workouts import get_muscle_recovery_status, resolve_or_create_exercise
+from sqlalchemy import desc
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+def _enrich_and_resolve_ai_exercises(
+    db: Session,
+    user_id: int,
+    raw_items: List[AIRoutineExerciseItem],
+    default_muscle_group: str = "CHEST"
+) -> List[AIRoutineExerciseItem]:
+    """
+    Ensures every AI-recommended exercise is matched or created in the `exercises` table
+    BEFORE returning to the frontend, attaches the true `exercise_id` and canonical `exercise_name`,
+    and populates `suggested_weight_kg` from the user's own historical last set if available.
+    """
+    enriched: List[AIRoutineExerciseItem] = []
+    for item in raw_items:
+        resolved = resolve_or_create_exercise(
+            db=db,
+            user_id=user_id,
+            exercise_id=item.exercise_id,
+            exercise_name=item.exercise_name,
+            target_muscle_group=item.target_muscle_group or default_muscle_group
+        )
+        # Check user's own previous completed set for this exercise
+        last_set = (
+            db.query(WorkoutSet)
+            .join(WorkoutSession, WorkoutSet.session_id == WorkoutSession.id)
+            .filter(
+                WorkoutSession.user_id == user_id,
+                WorkoutSet.exercise_id == resolved.id,
+                WorkoutSet.is_completed == True,
+                WorkoutSet.weight_kg > 0
+            )
+            .order_by(desc(WorkoutSession.created_at), desc(WorkoutSession.id), desc(WorkoutSet.weight_kg))
+            .first()
+        )
+        weight_val = float(last_set.weight_kg) if last_set else float(item.suggested_weight_kg or 0.0)
+        reps_val = str(last_set.reps) if (last_set and last_set.reps > 0) else str(item.target_reps or "10")
+
+        enriched.append(
+            AIRoutineExerciseItem(
+                exercise_id=resolved.id,
+                exercise_name=resolved.name,
+                target_muscle_group=resolved.target_muscle_group,
+                target_sets=int(item.target_sets or 3),
+                target_reps=reps_val,
+                suggested_weight_kg=weight_val,
+                notes=item.notes
+            )
+        )
+    db.commit()
+    return enriched
 
 def generate_gemini_content(prompt: str) -> str:
     api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
@@ -425,12 +476,18 @@ def recommend_workout(
 
     api_key = (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")).strip()
     if not api_key:
+        resolved_fallback_ex = _enrich_and_resolve_ai_exercises(
+            db=db,
+            user_id=current_user.id,
+            raw_items=fallback_template["exercises"],
+            default_muscle_group=target_focus
+        )
         return AIRoutineRecommendResponse(
             routine_title=fallback_template["title"],
             target_split=fallback_template["target_split"],
             rationale=f"系統依據您的恢復狀態（{target_label_zh}已充分修復）與專攻偏好（{sub_focus_desc}）為您規劃深度課表。{fallback_template['rationale']}",
             warmup_tips=fallback_template["warmup_tips"],
-            exercises=fallback_template["exercises"],
+            exercises=resolved_fallback_ex,
             cooldown_tips=fallback_template["cooldown_tips"]
         )
 
@@ -485,22 +542,35 @@ def recommend_workout(
     try:
         raw_text = generate_gemini_content(prompt)
         parsed = extract_json_from_text(raw_text)
+        raw_ex_items = [AIRoutineExerciseItem(**ex) for ex in parsed.get("exercises", [])] if parsed.get("exercises") else fallback_template["exercises"]
+        resolved_ex_items = _enrich_and_resolve_ai_exercises(
+            db=db,
+            user_id=current_user.id,
+            raw_items=raw_ex_items,
+            default_muscle_group=target_focus
+        )
         return AIRoutineRecommendResponse(
             routine_title=parsed.get("routine_title", fallback_template["title"]),
             target_split=parsed.get("target_split", target_focus),
             rationale=parsed.get("rationale", fallback_template["rationale"]),
             warmup_tips=parsed.get("warmup_tips", fallback_template["warmup_tips"]),
-            exercises=[AIRoutineExerciseItem(**ex) for ex in parsed.get("exercises", [])] if parsed.get("exercises") else fallback_template["exercises"],
+            exercises=resolved_ex_items,
             cooldown_tips=parsed.get("cooldown_tips", fallback_template["cooldown_tips"])
         )
     except Exception as e:
         print(f"AI Recommend fallback triggered: {e}")
+        resolved_fallback_ex = _enrich_and_resolve_ai_exercises(
+            db=db,
+            user_id=current_user.id,
+            raw_items=fallback_template["exercises"],
+            default_muscle_group=target_focus
+        )
         return AIRoutineRecommendResponse(
             routine_title=fallback_template["title"],
             target_split=fallback_template["target_split"],
             rationale=f"根據您的肌群修復數據（{target_label_zh}已 100% 充血恢復），今日推薦進行單一部位深度訓練。{fallback_template['rationale']}",
             warmup_tips=fallback_template["warmup_tips"],
-            exercises=fallback_template["exercises"],
+            exercises=resolved_fallback_ex,
             cooldown_tips=fallback_template["cooldown_tips"]
         )
 
@@ -581,12 +651,19 @@ def ai_coach_chat(
             try:
                 routine_data = json.loads(match.group(1))
                 if "exercises" in routine_data and len(routine_data["exercises"]) > 0:
+                    raw_chat_ex = [AIRoutineExerciseItem(**ex) for ex in routine_data.get("exercises", [])]
+                    resolved_chat_ex = _enrich_and_resolve_ai_exercises(
+                        db=db,
+                        user_id=current_user.id,
+                        raw_items=raw_chat_ex,
+                        default_muscle_group=routine_data.get("target_split", "CHEST")
+                    )
                     suggested_routine = AIRoutineRecommendResponse(
                         routine_title=routine_data.get("routine_title", "AI 教練推薦課表"),
                         target_split=routine_data.get("target_split", "FULL_BODY"),
                         rationale=routine_data.get("rationale", "教練對話客製菜單"),
                         warmup_tips=routine_data.get("warmup_tips", []),
-                        exercises=[AIRoutineExerciseItem(**ex) for ex in routine_data.get("exercises", [])],
+                        exercises=resolved_chat_ex,
                         cooldown_tips=routine_data.get("cooldown_tips", [])
                     )
             except Exception:

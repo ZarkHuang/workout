@@ -194,7 +194,7 @@
           <Dumbbell class="w-4 h-4 text-slate-500" />
           近期訓練紀錄
         </h3>
-        <router-link to="/workout" class="text-xs font-semibold text-brand-600 hover:text-brand-700">全部</router-link>
+        <router-link to="/workout?tab=history" class="text-xs font-semibold text-brand-600 hover:text-brand-700">查看全部 ({{ recentSessions.length }})</router-link>
       </div>
 
       <div v-if="recentSessions.length === 0" class="text-center py-6 text-slate-400 text-xs">
@@ -203,7 +203,7 @@
 
       <div v-else class="space-y-2">
         <div
-          v-for="s in recentSessions.slice(0, 3)"
+          v-for="s in recentSessions.slice(0, 5)"
           :key="s.id"
           class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between"
         >
@@ -216,6 +216,13 @@
               <div class="text-xs font-black text-brand-700">{{ s.total_volume_kg }} kg</div>
               <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
             </div>
+            <button
+              @click="repeatRecentSession(s)"
+              class="text-brand-600 hover:text-brand-700 px-2 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-[10px] font-bold transition-colors"
+              title="以此紀錄的動作與重量再練一次"
+            >
+              再練一次
+            </button>
             <button
               @click="handleDeleteRecentSession(s.id)"
               class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
@@ -447,7 +454,7 @@ import {
   Activity, Flame, Sparkles, Play, Utensils, Bot, Dumbbell, ChevronRight, X, ClipboardList, Trash2, BookmarkPlus, Plus
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkoutStore } from '@/stores/workout'
+import { useWorkoutStore, matchOrCreateExercise } from '@/stores/workout'
 import { useNutritionStore } from '@/stores/nutrition'
 import { workoutsAPI, aiAPI, exercisesAPI } from '@/api/client'
 import MuscleRecoveryCard from '@/components/MuscleRecoveryCard.vue'
@@ -569,7 +576,7 @@ async function fetchRecovery() {
 
 async function fetchRecentSessions() {
   try {
-    const res = await workoutsAPI.getSessions({ limit: 5 })
+    const res = await workoutsAPI.getSessions({ limit: 50 })
     recentSessions.value = res.data
   } catch (err) {
     console.error('Failed to fetch sessions:', err)
@@ -666,17 +673,16 @@ async function saveAsCustomRoutine() {
     const allEx = exRes.data
 
     const routineExercises = []
-    recommendedRoutine.value.exercises.forEach((item, idx) => {
-      let match = allEx.find(e => e.name === item.exercise_name || item.exercise_name.includes(e.name))
-      if (!match) {
-        match = allEx.find(e => e.target_muscle_group === item.target_muscle_group) || allEx[0]
-      }
+    for (const item of recommendedRoutine.value.exercises) {
+      const match = await matchOrCreateExercise(item.exercise_name, item.target_muscle_group, allEx, item.exercise_id)
       routineExercises.push({
         exercise_id: match.id,
+        exercise_name: match.name || item.exercise_name,
+        target_muscle_group: match.target_muscle_group || item.target_muscle_group || 'CHEST',
         target_sets: Number(item.target_sets) || 3,
         target_reps: parseInt(item.target_reps) || 10
       })
-    })
+    }
 
     await workoutsAPI.createRoutine({
       title: recommendedRoutine.value.routine_title || '自訂推薦課表',
@@ -696,6 +702,11 @@ function startEmptyWorkout() {
   router.push('/active-workout')
 }
 
+function repeatRecentSession(session) {
+  workoutStore.startWorkoutFromHistorySession(session)
+  router.push('/active-workout')
+}
+
 async function adoptAIRoutine() {
   if (!recommendedRoutine.value || !recommendedRoutine.value.exercises?.length) return
   showAIModal.value = false
@@ -707,21 +718,21 @@ async function adoptAIRoutine() {
     workoutStore.startWorkout(recommendedRoutine.value.routine_title)
     
     for (const item of recommendedRoutine.value.exercises) {
-      let match = allEx.find(e => e.name === item.exercise_name || item.exercise_name.includes(e.name))
-      if (!match) {
-        match = allEx.find(e => e.target_muscle_group === item.target_muscle_group) || allEx[0]
-      }
+      const match = await matchOrCreateExercise(item.exercise_name, item.target_muscle_group, allEx, item.exercise_id)
       
       const numSets = Number(item.target_sets) || 3
       const numReps = parseInt(item.target_reps) || 10
+      const initWeight = Number(item.suggested_weight_kg) || 0
       const sets = []
       for (let i = 1; i <= numSets; i++) {
         sets.push({
           set_number: i,
-          weight_kg: Number(item.suggested_weight_kg) || 0,
+          set_type: 'NORMAL',
+          weight_kg: initWeight,
           reps: numReps,
           rpe: 8.0,
           is_completed: false,
+          user_edited: false,
           prev_weight: null,
           prev_reps: null
         })
@@ -729,10 +740,12 @@ async function adoptAIRoutine() {
 
       workoutStore.activeExercises.push({
         exercise_id: match.id,
-        name: item.exercise_name,
-        target_muscle_group: item.target_muscle_group,
+        name: match.name || item.exercise_name,
+        target_muscle_group: match.target_muscle_group || item.target_muscle_group || 'CHEST',
         timerStatus: 'IDLE',
         elapsedSeconds: 0,
+        startTimestamp: null,
+        accumulatedSeconds: 0,
         sets
       })
     }

@@ -150,7 +150,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bot, Send, Sparkles, Flame } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkoutStore } from '@/stores/workout'
+import { useWorkoutStore, matchOrCreateExercise } from '@/stores/workout'
 import { useNutritionStore } from '@/stores/nutrition'
 import { aiAPI, exercisesAPI } from '@/api/client'
 
@@ -238,21 +238,21 @@ async function adoptRoutine(routine) {
     workoutStore.startWorkout(routine.routine_title || 'AI 教練推薦課表')
     
     for (const item of routine.exercises) {
-      let match = allEx.find(e => e.name === item.exercise_name || item.exercise_name.includes(e.name))
-      if (!match) {
-        match = allEx.find(e => e.target_muscle_group === item.target_muscle_group) || allEx[0]
-      }
+      const match = await matchOrCreateExercise(item.exercise_name, item.target_muscle_group, allEx, item.exercise_id)
       
       const numSets = Number(item.target_sets) || 3
       const numReps = parseInt(item.target_reps) || 10
+      const initWeight = Number(item.suggested_weight_kg) || 0
       const sets = []
       for (let i = 1; i <= numSets; i++) {
         sets.push({
           set_number: i,
-          weight_kg: item.suggested_weight_kg || 0,
+          set_type: 'NORMAL',
+          weight_kg: initWeight,
           reps: numReps,
           rpe: 8.0,
           is_completed: false,
+          user_edited: false,
           prev_weight: null,
           prev_reps: null
         })
@@ -260,10 +260,12 @@ async function adoptRoutine(routine) {
 
       workoutStore.activeExercises.push({
         exercise_id: match.id,
-        name: item.exercise_name,
-        target_muscle_group: item.target_muscle_group,
+        name: match.name || item.exercise_name,
+        target_muscle_group: match.target_muscle_group || item.target_muscle_group || 'CHEST',
         timerStatus: 'IDLE',
         elapsedSeconds: 0,
+        startTimestamp: null,
+        accumulatedSeconds: 0,
         sets
       })
     }

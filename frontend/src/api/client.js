@@ -51,6 +51,8 @@ export const authAPI = {
 export const exercisesAPI = {
   list: (params) => client.get('/exercises', { params }),
   create: (data) => client.post('/exercises', data),
+  update: (id, data) => client.put(`/exercises/${id}`, data),
+  delete: (id) => client.delete(`/exercises/${id}`),
   get: (id) => client.get(`/exercises/${id}`),
   getPreviousHint: (id) => client.get(`/exercises/${id}/previous-hint`),
 }
@@ -59,9 +61,11 @@ export const exercisesAPI = {
 export const workoutsAPI = {
   getRoutines: () => client.get('/workouts/routines'),
   createRoutine: (data) => client.post('/workouts/routines', data),
+  updateRoutine: (id, data) => client.put(`/workouts/routines/${id}`, data),
   deleteRoutine: (id) => client.delete(`/workouts/routines/${id}`),
   getSessions: (params) => client.get('/workouts/sessions', { params }),
   createSession: (data) => client.post('/workouts/sessions', data),
+  updateSession: (id, data) => client.put(`/workouts/sessions/${id}`, data),
   deleteSession: (id) => client.delete(`/workouts/sessions/${id}`),
   getRecoveryStatus: () => client.get('/workouts/recovery'),
   getStrengthTrends: () => client.get('/workouts/stats/1rm-trends'),
@@ -73,9 +77,11 @@ export const workoutsAPI = {
 export const nutritionAPI = {
   getProgress: (dateStr) => client.get('/nutrition/progress', { params: { target_date: dateStr } }),
   addMeal: (data) => client.post('/nutrition/meals', data),
+  updateMeal: (id, data) => client.put(`/nutrition/meals/${id}`, data),
   deleteMeal: (id) => client.delete(`/nutrition/meals/${id}`),
-  getWeightLogs: (limit = 30) => client.get('/nutrition/weight', { params: { limit } }),
+  getWeightLogs: (limit = 100) => client.get('/nutrition/weight', { params: { limit } }),
   recordWeight: (data) => client.post('/nutrition/weight', data),
+  deleteWeight: (id) => client.delete(`/nutrition/weight/${id}`),
   cleanup30d: () => client.post('/nutrition/cleanup-30d-rolling'),
 }
 

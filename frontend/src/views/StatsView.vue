@@ -35,8 +35,22 @@
           <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
             <Flame class="w-4 h-4" />
           </div>
-          <h3 class="font-bold text-slate-800 text-sm">核心動作 1RM 肌力進步曲線</h3>
+          <h3 class="font-bold text-slate-800 text-sm">各部位動作 1RM 肌力進步曲線</h3>
         </div>
+        <span class="text-[10px] font-bold text-slate-400">共 {{ availableExerciseNames.length }} 個動作</span>
+      </div>
+
+      <!-- Muscle group filter tabs -->
+      <div class="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          v-for="mf in muscleGroupTabs"
+          :key="mf.key"
+          @click="selectMuscleGroupTab(mf.key)"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all"
+          :class="selectedMuscleGroup === mf.key ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        >
+          {{ mf.label }}
+        </button>
       </div>
 
       <!-- Exercise select tabs -->
@@ -46,7 +60,7 @@
           :key="name"
           @click="selectedExerciseName = name"
           class="px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-all"
-          :class="selectedExerciseName === name ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          :class="activeExerciseName === name ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50/70 text-blue-800 hover:bg-blue-100'"
         >
           {{ name }}
         </button>
@@ -54,9 +68,28 @@
 
       <div class="h-48 relative">
         <div v-if="availableExerciseNames.length === 0" class="h-full flex items-center justify-center text-xs text-slate-400">
-          完成更多訓練後即可繪製 1RM 突破曲線
+          此部位尚無訓練紀錄，完成訓練後即可繪製 1RM 突破曲線
         </div>
         <Line v-else :data="oneRmChartData" :options="chartOptions" />
+      </div>
+
+      <!-- Selected Exercise PR & Recent Records Summary -->
+      <div v-if="currentExerciseRecords.length > 0" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-slate-700">🏆 {{ activeExerciseName }} 最佳表現：</span>
+          <span class="font-black text-blue-600">
+            最高 {{ currentExerciseBest.weight_kg }}kg × {{ currentExerciseBest.reps }}次 (預估 1RM: {{ currentExerciseBest.estimated_1rm }}kg)
+          </span>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60">
+          <span
+            v-for="(rec, idx) in currentExerciseRecords.slice(-5)"
+            :key="idx"
+            class="text-[10px] bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-semibold"
+          >
+            {{ rec.date.slice(5) }}: {{ rec.weight_kg }}kg×{{ rec.reps }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -90,11 +123,50 @@ const authStore = useAuthStore()
 const nutritionStore = useNutritionStore()
 
 const strengthTrends = ref({})
+const exerciseMeta = ref({})
+const selectedMuscleGroup = ref('ALL')
 const selectedExerciseName = ref('')
 
+const muscleGroupTabs = [
+  { key: 'ALL', label: '全部部位' },
+  { key: 'LEGS', label: '🦵 腿部與臀部' },
+  { key: 'CHEST', label: '💪 胸部' },
+  { key: 'BACK', label: '🦅 背部' },
+  { key: 'SHOULDERS', label: '🛡️ 肩部' },
+  { key: 'ARMS', label: '💪 手臂' },
+  { key: 'CORE', label: '🔥 核心' }
+]
+
 const availableExerciseNames = computed(() => {
-  return Object.keys(strengthTrends.value)
+  const allNames = Object.keys(strengthTrends.value)
+  if (selectedMuscleGroup.value === 'ALL') return allNames
+  return allNames.filter(name => {
+    const mg = exerciseMeta.value[name]?.target_muscle_group || strengthTrends.value[name]?.[0]?.target_muscle_group || 'CHEST'
+    return mg === selectedMuscleGroup.value
+  })
 })
+
+const activeExerciseName = computed(() => {
+  if (selectedExerciseName.value && availableExerciseNames.value.includes(selectedExerciseName.value)) {
+    return selectedExerciseName.value
+  }
+  return availableExerciseNames.value[0] || ''
+})
+
+const currentExerciseRecords = computed(() => {
+  return strengthTrends.value[activeExerciseName.value] || []
+})
+
+const currentExerciseBest = computed(() => {
+  const recs = currentExerciseRecords.value
+  if (!recs.length) return { weight_kg: 0, reps: 0, estimated_1rm: 0 }
+  return recs.reduce((best, cur) => (cur.estimated_1rm >= best.estimated_1rm ? cur : best), recs[0])
+})
+
+function selectMuscleGroupTab(mgKey) {
+  selectedMuscleGroup.value = mgKey
+  selectedExerciseName.value = ''
+}
 
 // Weight Chart Data
 const weightChartData = computed(() => {
@@ -124,7 +196,7 @@ const weightChartData = computed(() => {
 
 // 1RM Chart Data
 const oneRmChartData = computed(() => {
-  const exName = selectedExerciseName.value || availableExerciseNames.value[0]
+  const exName = activeExerciseName.value
   const records = strengthTrends.value[exName] || []
   
   const labels = records.map(r => r.date)
@@ -199,6 +271,7 @@ async function fetchTrends() {
   try {
     const res = await workoutsAPI.getStrengthTrends()
     strengthTrends.value = res.data.trends || {}
+    exerciseMeta.value = res.data.exercise_meta || {}
     if (availableExerciseNames.value.length > 0 && !selectedExerciseName.value) {
       selectedExerciseName.value = availableExerciseNames.value[0]
     }

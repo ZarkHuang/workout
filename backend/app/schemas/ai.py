@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class AIRoutineExerciseItem(BaseModel):
+    exercise_id: Optional[int] = None
     exercise_name: str
     target_muscle_group: str
     target_sets: int

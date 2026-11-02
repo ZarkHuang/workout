@@ -200,6 +200,25 @@
         <div v-if="isAutoRecalc" class="text-[11px] text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 leading-relaxed">
           💡 已依據<strong>{{ form.gender === 'FEMALE' ? '女性' : '男性' }}</strong>體質、{{ form.current_weight_kg }}kg 體重與<strong>{{ getGoalText(form.fitness_goal) }}</strong>目標自動調配最佳三大營養素！
         </div>
+        <div v-else class="text-[11px] text-slate-700 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80 space-y-2 leading-relaxed">
+          <div>✏️ <strong>手動微調覆寫模式已開啟</strong>：可直接修改下方目標克數與熱量，儲存後系統將優先採用您的自訂數值，不會被公式覆蓋。</div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              @click="syncCaloriesFromMacros"
+              class="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] active:scale-95 transition-all"
+            >
+              🔄 依 P/C/F 克數自動加總熱量 ({{ calculatedMacroCalories }} kcal)
+            </button>
+            <button
+              type="button"
+              @click="loadFormulaDefaultsIntoManual"
+              class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px] active:scale-95 transition-all"
+            >
+              ⚡ 載入公式建議值作為基準
+            </button>
+          </div>
+        </div>
 
         <div class="grid grid-cols-4 gap-2 text-center">
           <div>
@@ -262,11 +281,13 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Sparkles, Save, LogOut, Flame } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useNutritionStore } from '@/stores/nutrition'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const nutritionStore = useNutritionStore()
 const saving = ref(false)
-const isAutoRecalc = ref(true)
+const isAutoRecalc = ref(localStorage.getItem('fitpulse_custom_macros_mode') !== 'manual')
 
 const form = reactive({
   name: '',
@@ -351,6 +372,24 @@ const liveStats = computed(() => {
   }
 })
 
+const calculatedMacroCalories = computed(() => {
+  const p = Number(form.target_protein_g) || 0
+  const c = Number(form.target_carbs_g) || 0
+  const f = Number(form.target_fat_g) || 0
+  return Math.round(p * 4 + c * 4 + f * 9)
+})
+
+function syncCaloriesFromMacros() {
+  form.target_calories = calculatedMacroCalories.value
+}
+
+function loadFormulaDefaultsIntoManual() {
+  form.target_calories = liveStats.value.targetCals
+  form.target_protein_g = liveStats.value.proteinG
+  form.target_carbs_g = liveStats.value.carbsG
+  form.target_fat_g = liveStats.value.fatG
+}
+
 function handleFormChange() {
   if (isAutoRecalc.value) {
     form.target_calories = liveStats.value.targetCals
@@ -362,6 +401,7 @@ function handleFormChange() {
 
 function setAutoRecalc(val) {
   isAutoRecalc.value = val
+  localStorage.setItem('fitpulse_custom_macros_mode', val ? 'auto' : 'manual')
   if (val) {
     handleFormChange()
   }
@@ -380,23 +420,38 @@ function syncProfile() {
   form.experience_level = p.experience_level || 'INTERMEDIATE'
   form.activity_level = p.activity_level || 'MODERATE'
   
-  form.target_calories = p.target_calories || liveStats.value.targetCals
-  form.target_protein_g = p.target_protein_g || liveStats.value.proteinG
-  form.target_carbs_g = p.target_carbs_g || liveStats.value.carbsG
-  form.target_fat_g = p.target_fat_g || liveStats.value.fatG
+  form.target_calories = p.target_calories ?? liveStats.value.targetCals
+  form.target_protein_g = p.target_protein_g ?? liveStats.value.proteinG
+  form.target_carbs_g = p.target_carbs_g ?? liveStats.value.carbsG
+  form.target_fat_g = p.target_fat_g ?? liveStats.value.fatG
+
+  // Auto-detect if saved profile values differ from formula values -> keep manual mode enabled!
+  const diffCals = Math.abs((Number(p.target_calories) || 0) - liveStats.value.targetCals)
+  const diffProt = Math.abs((Number(p.target_protein_g) || 0) - liveStats.value.proteinG)
+  if (diffCals > 5 || diffProt > 1) {
+    isAutoRecalc.value = false
+    localStorage.setItem('fitpulse_custom_macros_mode', 'manual')
+  }
 }
 
 async function saveProfile() {
   saving.value = true
   try {
-    handleFormChange()
+    if (isAutoRecalc.value) {
+      handleFormChange()
+    }
     const payload = {
       ...form,
+      target_calories: Math.round(Number(form.target_calories) || liveStats.value.targetCals),
+      target_protein_g: Number(form.target_protein_g) || 0,
+      target_carbs_g: Number(form.target_carbs_g) || 0,
+      target_fat_g: Number(form.target_fat_g) || 0,
       auto_recalculate: isAutoRecalc.value
     }
-    const updated = await authStore.updateProfile(payload)
+    await authStore.updateProfile(payload)
     syncProfile()
-    alert('🎉 體態設定與 TDEE 已成功更新！')
+    await nutritionStore.fetchTodayProgress()
+    alert(isAutoRecalc.value ? '🎉 體態設定與公式 TDEE 已成功更新！' : '🎉 自訂營養目標已成功覆寫並同步至飲食追蹤！')
   } catch (err) {
     alert('儲存失敗，請稍後重試')
   } finally {

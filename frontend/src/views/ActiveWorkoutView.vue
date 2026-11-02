@@ -121,7 +121,7 @@
     <div v-else class="space-y-4">
       <div
         v-for="(ex, exIdx) in workoutStore.activeExercises"
-        :key="ex.exercise_id"
+        :key="`${ex.exercise_id || 'custom'}-${exIdx}`"
         class="card-apple space-y-3 relative overflow-hidden"
       >
         <!-- Exercise Header & Per-Exercise Stopwatch -->
@@ -135,8 +135,8 @@
               <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
             </div>
 
-            <!-- Single Exercise Stopwatch Controls -->
-            <div class="flex items-center gap-2 mt-2">
+            <!-- Single Exercise Stopwatch & Quick Action Controls -->
+            <div class="flex flex-wrap items-center gap-1.5 mt-2">
               <button
                 @click="handleToggleExerciseTimer(exIdx)"
                 class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
@@ -155,16 +155,41 @@
               >
                 重設
               </button>
+              <button
+                @click="openReplaceExerciseModal(exIdx, ex)"
+                class="px-2 py-1 rounded-lg text-[11px] font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200/70 transition-colors"
+                title="器材被佔用？點擊替換成同部位其他動作"
+              >
+                🔄 換動作
+              </button>
             </div>
           </div>
 
-          <button
-            @click="workoutStore.removeExercise(exIdx)"
-            class="text-slate-300 hover:text-rose-500 p-1"
-            title="移除此動作"
-          >
-            <Trash2 class="w-4 h-4" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              v-if="exIdx > 0"
+              @click="workoutStore.moveExercise(exIdx, -1)"
+              class="text-slate-400 hover:text-slate-700 px-1.5 py-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              title="上移順序"
+            >
+              ↑
+            </button>
+            <button
+              v-if="exIdx < workoutStore.activeExercises.length - 1"
+              @click="workoutStore.moveExercise(exIdx, 1)"
+              class="text-slate-400 hover:text-slate-700 px-1.5 py-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              title="下移順序"
+            >
+              ↓
+            </button>
+            <button
+              @click="workoutStore.removeExercise(exIdx)"
+              class="text-slate-300 hover:text-rose-500 p-1"
+              title="移除此動作"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Previous Set Performance Hint & Overload Suggestion -->
@@ -194,9 +219,16 @@
             class="grid grid-cols-12 gap-1.5 items-center p-2 rounded-xl transition-all"
             :class="set.is_completed ? 'bg-emerald-50/80 border border-emerald-300/80 shadow-xs' : 'bg-slate-50 border border-slate-200/60'"
           >
-            <!-- Set number -->
-            <div class="col-span-2 text-center text-xs font-bold text-slate-700 flex items-center justify-center gap-1">
-              <span>{{ set.set_number }}</span>
+            <!-- Set number & Set Type Toggle (Normal / W Warmup / D Drop / F Failure) -->
+            <div class="col-span-2 text-center text-xs font-bold text-slate-700 flex items-center justify-center gap-0.5">
+              <button
+                @click="workoutStore.cycleSetType(exIdx, setIdx)"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-black transition-all active:scale-90"
+                :class="getSetTypeBadgeClass(set.set_type)"
+                title="點擊切換：正式組 / W熱身組 / D遞減組 / F力竭組"
+              >
+                {{ getSetTypeLabel(set) }}
+              </button>
               <button
                 v-if="ex.sets.length > 1 && !set.is_completed"
                 @click="workoutStore.removeSet(exIdx, setIdx)"
@@ -211,6 +243,7 @@
             <div class="col-span-3">
               <input
                 v-model.number="set.weight_kg"
+                @input="set.user_edited = true"
                 type="number"
                 step="0.5"
                 class="w-full text-center py-2 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-900 focus:outline-none focus:border-brand-500 shadow-2xs"
@@ -222,6 +255,7 @@
             <div class="col-span-3">
               <input
                 v-model.number="set.reps"
+                @input="set.user_edited = true"
                 type="number"
                 class="w-full text-center py-2 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-900 focus:outline-none focus:border-brand-500 shadow-2xs"
                 placeholder="次"
@@ -262,7 +296,7 @@
 
       <!-- Add Another Exercise Button -->
       <button
-        @click="showAddExerciseModal = true"
+        @click="openAddNewExerciseModal"
         class="w-full py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs border border-slate-200 shadow-apple flex items-center justify-center gap-2 active:scale-98 transition-all"
       >
         <Plus class="w-4 h-4 text-brand-600" />
@@ -288,8 +322,10 @@
     >
       <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto space-y-3 shadow-2xl">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h3 class="font-black text-slate-900 text-base">選擇訓練動作</h3>
-          <button @click="showAddExerciseModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
+          <h3 class="font-black text-slate-900 text-base">
+            {{ replacingExerciseIdx !== null ? '🔄 選擇替換動作' : '選擇訓練動作' }}
+          </h3>
+          <button @click="closeExerciseModal" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
             <X class="w-5 h-5" />
           </button>
         </div>
@@ -300,6 +336,19 @@
           placeholder="搜尋動作（如：臥推、深蹲、划船）..."
           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
         />
+
+        <!-- Muscle group filter pills in modal -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            v-for="mf in modalMuscleFilters"
+            :key="mf.key"
+            @click="modalMuscleFilter = mf.key"
+            class="px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all"
+            :class="modalMuscleFilter === mf.key ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          >
+            {{ mf.label }}
+          </button>
+        </div>
 
         <div class="max-h-60 overflow-y-auto space-y-1.5">
           <div
@@ -314,6 +363,15 @@
             </div>
             <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
           </div>
+
+          <button
+            v-if="exerciseSearch.trim()"
+            @click="createAndAddCustomExercise"
+            class="w-full p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Plus class="w-4 h-4" />
+            <span>+ 新增並加入自訂動作「{{ exerciseSearch.trim() }}」</span>
+          </button>
         </div>
       </div>
     </div>
@@ -355,7 +413,7 @@
           <div class="text-[11px] font-bold text-slate-600 px-1">📝 本次動作摘要：</div>
           <div
             v-for="(ex, i) in workoutStore.activeExercises"
-            :key="ex.exercise_id"
+            :key="`${ex.exercise_id || 'custom'}-${i}`"
             class="text-xs bg-white p-2 rounded-xl border border-slate-100 flex items-center justify-between"
           >
             <div>
@@ -397,7 +455,7 @@ import confetti from 'canvas-confetti'
 import {
   Flame, Dumbbell, Trash2, Lightbulb, Plus, X, Check, Trophy, Play, Pause, Calendar
 } from 'lucide-vue-next'
-import { useWorkoutStore } from '@/stores/workout'
+import { useWorkoutStore, matchOrCreateExercise, normalizeExerciseName, isSetEffective } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
 
 const router = useRouter()
@@ -405,10 +463,23 @@ const workoutStore = useWorkoutStore()
 
 const exerciseLibrary = ref([])
 const showAddExerciseModal = ref(false)
+const replacingExerciseIdx = ref(null)
+const modalMuscleFilter = ref('ALL')
 const showSettlementModal = ref(false)
 const exerciseSearch = ref('')
 const previousHints = ref({})
 const submitting = ref(false)
+
+const modalMuscleFilters = [
+  { key: 'ALL', label: '全部' },
+  { key: 'CHEST', label: '胸部' },
+  { key: 'BACK', label: '背部' },
+  { key: 'LEGS', label: '腿部' },
+  { key: 'SHOULDERS', label: '肩部' },
+  { key: 'ARMS', label: '手臂' },
+  { key: 'CORE', label: '核心' },
+  { key: 'CARDIO', label: '有氧' }
+]
 
 // Session live stopwatch state
 const sessionElapsedSeconds = ref(workoutStore.getSessionElapsedSeconds())
@@ -448,14 +519,14 @@ const totalSetsCount = computed(() => {
 })
 
 const completedSetsCount = computed(() => {
-  return workoutStore.activeExercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.is_completed || s.weight_kg > 0).length, 0)
+  return workoutStore.activeExercises.reduce((acc, ex) => acc + ex.sets.filter(s => isSetEffective(ex, s)).length, 0)
 })
 
 const currentTotalVolume = computed(() => {
   let vol = 0
   workoutStore.activeExercises.forEach(ex => {
     ex.sets.forEach(s => {
-      if (s.is_completed || s.weight_kg > 0) {
+      if (isSetEffective(ex, s)) {
         vol += (Number(s.weight_kg) || 0) * (Number(s.reps) || 0)
       }
     })
@@ -464,10 +535,49 @@ const currentTotalVolume = computed(() => {
 })
 
 const filteredExerciseLibrary = computed(() => {
-  if (!exerciseSearch.value) return exerciseLibrary.value
-  const q = exerciseSearch.value.toLowerCase()
-  return exerciseLibrary.value.filter(e => e.name.toLowerCase().includes(q) || (e.name_en && e.name_en.toLowerCase().includes(q)))
+  return exerciseLibrary.value.filter(e => {
+    const matchMuscle = modalMuscleFilter.value === 'ALL' || e.target_muscle_group === modalMuscleFilter.value
+    if (!matchMuscle) return false
+    if (!exerciseSearch.value) return true
+    const q = exerciseSearch.value.toLowerCase()
+    return e.name.toLowerCase().includes(q) || (e.name_en && e.name_en.toLowerCase().includes(q))
+  })
 })
+
+function getSetTypeLabel(set) {
+  const t = set.set_type || 'NORMAL'
+  if (t === 'WARMUP') return 'W熱身'
+  if (t === 'DROP') return 'D遞減'
+  if (t === 'FAILURE') return 'F力竭'
+  return set.set_number
+}
+
+function getSetTypeBadgeClass(type) {
+  const t = type || 'NORMAL'
+  if (t === 'WARMUP') return 'bg-amber-100 text-amber-800 border border-amber-300'
+  if (t === 'DROP') return 'bg-purple-100 text-purple-800 border border-purple-300'
+  if (t === 'FAILURE') return 'bg-rose-100 text-rose-800 border border-rose-300'
+  return 'bg-slate-200/70 text-slate-700 hover:bg-slate-300'
+}
+
+function openAddNewExerciseModal() {
+  replacingExerciseIdx.value = null
+  modalMuscleFilter.value = 'ALL'
+  exerciseSearch.value = ''
+  showAddExerciseModal.value = true
+}
+
+function openReplaceExerciseModal(exIdx, ex) {
+  replacingExerciseIdx.value = exIdx
+  modalMuscleFilter.value = ex?.target_muscle_group || 'ALL'
+  exerciseSearch.value = ''
+  showAddExerciseModal.value = true
+}
+
+function closeExerciseModal() {
+  showAddExerciseModal.value = false
+  replacingExerciseIdx.value = null
+}
 
 function toggleSessionTimer() {
   workoutStore.toggleSessionTimer()
@@ -509,15 +619,38 @@ function isNewPR(exerciseId, weight, reps) {
 }
 
 function getCompletedSetsForExercise(ex) {
-  return ex.sets.filter(s => s.is_completed || s.weight_kg > 0).length
+  return ex.sets.filter(s => isSetEffective(ex, s)).length
 }
 
 function getMaxWeightForExercise(ex) {
   let maxW = 0
   ex.sets.forEach(s => {
-    if (s.weight_kg > maxW) maxW = s.weight_kg
+    if (isSetEffective(ex, s) && Number(s.weight_kg) > maxW) {
+      maxW = Number(s.weight_kg)
+    }
   })
   return maxW
+}
+
+function applyHintToExerciseSets(exerciseId, hint) {
+  if (!hint) return
+  workoutStore.activeExercises.forEach(ex => {
+    if (ex.exercise_id !== exerciseId) return
+    const lastSets = Array.isArray(hint.last_sets) ? hint.last_sets : []
+    ex.sets.forEach((s, idx) => {
+      if (s.user_edited || s.is_completed) return
+      if (lastSets.length > 0) {
+        const prev = lastSets[idx] || lastSets[lastSets.length - 1]
+        if (prev && prev.weight_kg > 0) {
+          s.weight_kg = prev.weight_kg
+          if (prev.reps > 0) s.reps = prev.reps
+        }
+      } else if (hint.last_weight_kg > 0) {
+        s.weight_kg = hint.last_weight_kg
+        if (hint.last_reps > 0) s.reps = hint.last_reps
+      }
+    })
+  })
 }
 
 async function fetchExerciseLibrary() {
@@ -525,32 +658,60 @@ async function fetchExerciseLibrary() {
     const res = await exercisesAPI.list()
     exerciseLibrary.value = res.data
     for (const ex of workoutStore.activeExercises) {
-      loadHint(ex.exercise_id)
+      // Repair any mismatched exercise_id from older cached drafts
+      const matchedInLib = exerciseLibrary.value.find(item => item.id === ex.exercise_id)
+      if (!matchedInLib || (ex.name && normalizeExerciseName(matchedInLib.name) !== normalizeExerciseName(ex.name))) {
+        const resolved = await matchOrCreateExercise(ex.name, ex.target_muscle_group, exerciseLibrary.value)
+        if (resolved && resolved.id) {
+          ex.exercise_id = resolved.id
+        }
+      }
+      if (ex.exercise_id) {
+        await loadHint(ex.exercise_id)
+      }
     }
   } catch (err) {
     console.error('Failed to fetch exercises:', err)
   }
 }
 
+async function createAndAddCustomExercise() {
+  const customName = exerciseSearch.value.trim()
+  if (!customName) return
+  const mg = modalMuscleFilter.value === 'ALL' ? 'CHEST' : modalMuscleFilter.value
+  const created = await matchOrCreateExercise(customName, mg, exerciseLibrary.value)
+  selectExerciseToAdd(created)
+}
+
 async function loadHint(exerciseId) {
-  if (previousHints.value[exerciseId]) return
+  if (previousHints.value[exerciseId]) {
+    applyHintToExerciseSets(exerciseId, previousHints.value[exerciseId])
+    return
+  }
   try {
     const res = await exercisesAPI.getPreviousHint(exerciseId)
     previousHints.value[exerciseId] = res.data
+    applyHintToExerciseSets(exerciseId, res.data)
   } catch (err) {}
 }
 
 function selectExerciseToAdd(ex) {
-  workoutStore.addExerciseToActive(ex)
-  loadHint(ex.id)
+  if (replacingExerciseIdx.value !== null) {
+    workoutStore.replaceExerciseInActive(replacingExerciseIdx.value, ex)
+    loadHint(ex.id)
+    replacingExerciseIdx.value = null
+  } else {
+    workoutStore.addExerciseToActive(ex)
+    loadHint(ex.id)
+  }
   showAddExerciseModal.value = false
   exerciseSearch.value = ''
 }
 
 function openSettlementModal() {
-  const hasData = workoutStore.activeExercises.some(ex => ex.sets.some(s => s.weight_kg > 0 || s.reps > 0 || s.is_completed))
+  const hasData = workoutStore.activeExercises.some(ex => ex.sets.some(s => isSetEffective(ex, s)))
   if (!hasData) {
-    alert('請至少填寫 1 組動作的重量或次數再結算！')
+    alert('請至少填寫 1 組動作的重量或勾選完成再結算！')
     return
   }
   showSettlementModal.value = true

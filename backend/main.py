@@ -13,10 +13,12 @@ async def lifespan(app: FastAPI):
     # Initialize DB tables
     Base.metadata.create_all(bind=engine)
     
-    # Seed 40+ golden exercises
+    # Seed 40+ golden exercises & auto-repair any legacy corrupted sessions
     db = SessionLocal()
     try:
         seed_exercises(db)
+        from app.routers.workouts import repair_corrupted_sessions
+        repair_corrupted_sessions(db)
     finally:
         db.close()
     yield

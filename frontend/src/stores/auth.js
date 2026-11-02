@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/api/client'
+import { useWorkoutStore } from '@/stores/workout'
+import { useNutritionStore } from '@/stores/nutrition'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('fitpulse_token') || '')
@@ -16,6 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await authAPI.login({ email, password })
       token.value = res.data.access_token
       localStorage.setItem('fitpulse_token', res.data.access_token)
+      const nutritionStore = useNutritionStore()
+      nutritionStore.resetState()
       await fetchMe()
       return true
     } catch (err) {
@@ -31,6 +35,8 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await authAPI.register({ name, email, password })
       token.value = res.data.access_token
       localStorage.setItem('fitpulse_token', res.data.access_token)
+      const nutritionStore = useNutritionStore()
+      nutritionStore.resetState()
       await fetchMe()
       return true
     } catch (err) {
@@ -45,6 +51,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const res = await authAPI.getMe()
       user.value = res.data
+      const workoutStore = useWorkoutStore()
+      workoutStore.syncUserOwnership(res.data.id)
     } catch (err) {
       logout()
     }
@@ -67,6 +75,11 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     localStorage.removeItem('fitpulse_token')
+    const workoutStore = useWorkoutStore()
+    workoutStore.cancelWorkout()
+    workoutStore.ownerUserId = null
+    const nutritionStore = useNutritionStore()
+    nutritionStore.resetState()
   }
 
   return {

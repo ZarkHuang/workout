@@ -22,6 +22,111 @@ def _normalize_ex_name(name: str) -> str:
     cleaned = re.sub(r"[\s\-_·/]+", "", cleaned)
     return cleaned.strip().lower()
 
+def normalize_muscle_group(raw_mg: Optional[str], fallback: str = "CHEST") -> str:
+    if not raw_mg:
+        return fallback
+    s = raw_mg.strip().upper()
+    if s in ["CHEST", "BACK", "LEGS", "SHOULDERS", "ARMS", "CORE", "CARDIO"]:
+        return s
+    if any(k in s for k in ["LEG", "QUAD", "GLUTE", "HAMSTRING", "CALF", "LOWER", "腿", "臀", "股", "膕", "小腿", "下肢", "深蹲"]):
+        return "LEGS"
+    if any(k in s for k in ["BACK", "LAT", "PULL", "ROW", "背", "闊背", "斜方", "菱形", "拉"]):
+        return "BACK"
+    if any(k in s for k in ["SHOULDER", "DELT", "肩", "三角肌"]):
+        return "SHOULDERS"
+    if any(k in s for k in ["ARM", "BICEP", "TRICEP", "手", "二頭", "三頭", "臂"]):
+        return "ARMS"
+    if any(k in s for k in ["CORE", "ABS", "ABDOM", "核", "腹", "腰"]):
+        return "CORE"
+    if any(k in s for k in ["CARDIO", "HIIT", "AEROBIC", "有氧", "心肺", "燃脂"]):
+        return "CARDIO"
+    if any(k in s for k in ["CHEST", "PEC", "PUSH", "胸", "推"]):
+        return "CHEST"
+    return fallback
+
+COMMON_EXERCISE_ALIASES = {
+    "槓鈴深蹲": "槓鈴頸後深蹲",
+    "頸後深蹲": "槓鈴頸後深蹲",
+    "自由深蹲": "槓鈴頸後深蹲",
+    "深蹲": "槓鈴頸後深蹲",
+    "機械腿推": "機械斜板腿推 (倒蹬機)",
+    "斜板腿推": "機械斜板腿推 (倒蹬機)",
+    "倒蹬機": "機械斜板腿推 (倒蹬機)",
+    "器械腿推": "機械斜板腿推 (倒蹬機)",
+    "腿推": "機械斜板腿推 (倒蹬機)",
+    "坐姿腿屈伸": "坐姿機械腿屈伸 (練股四頭)",
+    "機械腿屈伸": "坐姿機械腿屈伸 (練股四頭)",
+    "器械腿屈伸": "坐姿機械腿屈伸 (練股四頭)",
+    "腿屈伸": "坐姿機械腿屈伸 (練股四頭)",
+    "俯臥腿彎舉": "俯臥機械腿彎舉 (練腿後側)",
+    "坐姿腿彎舉": "俯臥機械腿彎舉 (練腿後側)",
+    "機械腿彎舉": "俯臥機械腿彎舉 (練腿後側)",
+    "器械腿彎舉": "俯臥機械腿彎舉 (練腿後側)",
+    "腿彎舉": "俯臥機械腿彎舉 (練腿後側)",
+    "勾腿": "俯臥機械腿彎舉 (練腿後側)",
+    "站姿提踵": "站姿槓鈴提踵 (練小腿)",
+    "槓鈴提踵": "站姿槓鈴提踵 (練小腿)",
+    "啞鈴提踵": "站姿槓鈴提踵 (練小腿)",
+    "機械提踵": "站姿槓鈴提踵 (練小腿)",
+    "提踵": "站姿槓鈴提踵 (練小腿)",
+    "羅馬尼亞硬舉": "羅馬尼亞硬舉 (RDL)",
+    "啞鈴羅馬尼亞硬舉": "羅馬尼亞硬舉 (RDL)",
+    "rdl": "羅馬尼亞硬舉 (RDL)",
+    "傳統硬舉": "傳統槓鈴硬舉",
+    "槓鈴硬舉": "傳統槓鈴硬舉",
+    "硬舉": "傳統槓鈴硬舉",
+    "分腿蹲": "保加利亞分腿蹲",
+    "啞鈴分腿蹲": "保加利亞分腿蹲",
+    "臀推": "槓鈴臀推 (Hip Thrust)",
+    "槓鈴臀推": "槓鈴臀推 (Hip Thrust)",
+    "哈克深蹲": "哈克深蹲 (Hack Squat)",
+    "槓鈴臥推": "槓鈴平板臥推",
+    "平板槓鈴臥推": "槓鈴平板臥推",
+    "平板臥推": "槓鈴平板臥推",
+    "啞鈴臥推": "啞鈴平板臥推",
+    "繩索夾胸": "繩索夾胸 (滑輪飛鳥)",
+    "滑輪飛鳥": "繩索夾胸 (滑輪飛鳥)",
+    "滑輪夾胸": "繩索夾胸 (滑輪飛鳥)",
+    "雙槓臂屈伸": "雙槓臂屈伸 (胸部偏向)",
+    "高位下拉": "滑輪高位下拉",
+    "寬握高位下拉": "滑輪高位下拉",
+    "槓鈴划船": "槓鈴俯身划船",
+    "俯身槓鈴划船": "槓鈴俯身划船",
+    "俯身划船": "槓鈴俯身划船",
+    "站姿肩推": "槓鈴站姿肩推 (OHP)",
+    "槓鈴肩推": "槓鈴站姿肩推 (OHP)",
+    "啞鈴肩推": "坐姿啞鈴肩推",
+    "啞鈴側平舉": "站姿啞鈴側平舉",
+    "側平舉": "站姿啞鈴側平舉",
+    "繩索面拉": "繩索面拉 (Face Pull)",
+    "面拉": "繩索面拉 (Face Pull)",
+    "後束飛鳥": "俯身啞鈴飛鳥 (後束)",
+    "俯身飛鳥": "俯身啞鈴飛鳥 (後束)",
+    "槓鈴二頭彎舉": "站姿槓鈴二頭彎舉",
+    "槓鈴彎舉": "站姿槓鈴二頭彎舉",
+    "三頭下壓": "三頭繩索高位下壓",
+    "繩索下壓": "三頭繩索高位下壓",
+}
+
+def infer_muscle_from_name(name: str, fallback: str = "CHEST") -> str:
+    if not name:
+        return fallback
+    if any(k in name for k in ["深蹲", "分腿蹲", "腿推", "倒蹬", "腿屈伸", "腿彎舉", "勾腿", "提踵", "臀推", "硬舉", "RDL", "弓箭步", "臀", "腿"]):
+        return "LEGS"
+    if any(k in name for k in ["引體", "下拉", "划船", "直臂下壓", "背"]):
+        return "BACK"
+    if any(k in name for k in ["肩推", "側平舉", "前平舉", "面拉", "後束", "聳肩", "肩"]):
+        return "SHOULDERS"
+    if any(k in name for k in ["彎舉", "三頭", "二頭", "臂屈伸", "碎顱"]):
+        return "ARMS"
+    if any(k in name for k in ["捲腹", "棒式", "抬腿", "核心", "腹"]):
+        return "CORE"
+    if any(k in name for k in ["跑步", "飛輪", "戰繩", "波比", "有氧", "划船機"]):
+        return "CARDIO"
+    if any(k in name for k in ["臥推", "夾胸", "飛鳥", "伏地挺身", "胸"]):
+        return "CHEST"
+    return fallback
+
 def resolve_or_create_exercise(
     db: Session,
     user_id: int,
@@ -31,6 +136,7 @@ def resolve_or_create_exercise(
 ) -> Exercise:
     clean_name = (exercise_name or "").strip()
     norm_target = _normalize_ex_name(clean_name)
+    alias_canonical = COMMON_EXERCISE_ALIASES.get(clean_name.lower()) or COMMON_EXERCISE_ALIASES.get(norm_target)
 
     # 1. If exercise_id is provided, check if it exists and matches exercise_name (when exercise_name is given)
     ex_by_id = None
@@ -40,8 +146,11 @@ def resolve_or_create_exercise(
             if not clean_name:
                 return ex_by_id
             norm_db = _normalize_ex_name(ex_by_id.name)
-            if ex_by_id.name == clean_name or norm_db == norm_target or (
-                len(norm_db) >= 2 and len(norm_target) >= 2 and (norm_db in norm_target or norm_target in norm_db)
+            if (
+                ex_by_id.name == clean_name
+                or (alias_canonical and ex_by_id.name == alias_canonical)
+                or norm_db == norm_target
+                or (len(norm_db) >= 2 and len(norm_target) >= 2 and (norm_db in norm_target or norm_target in norm_db))
             ):
                 return ex_by_id
 
@@ -54,9 +163,11 @@ def resolve_or_create_exercise(
             )
         ).order_by(Exercise.id).all()
 
-        # 2a. Exact name match
+        # 2a. Exact name or alias canonical match
         for c in candidates:
             if c.name.strip().lower() == clean_name.lower():
+                return c
+            if alias_canonical and c.name.strip() == alias_canonical:
                 return c
 
         # 2b. Normalized name match (ignoring parentheses like (RDL), (OHP), (練股四頭))
@@ -73,9 +184,11 @@ def resolve_or_create_exercise(
                         return c
 
         # 3. Not found in library -> Auto-create custom exercise for this user so their exact exercise name is preserved!
-        muscle = (target_muscle_group or (ex_by_id.target_muscle_group if ex_by_id else "CHEST")).upper().strip()
-        if muscle not in ["CHEST", "BACK", "LEGS", "SHOULDERS", "ARMS", "CORE", "CARDIO"]:
-            muscle = "CHEST"
+        inferred_mg = infer_muscle_from_name(clean_name, fallback="")
+        muscle = normalize_muscle_group(
+            inferred_mg or target_muscle_group,
+            fallback=(ex_by_id.target_muscle_group if ex_by_id else "CHEST")
+        )
         new_ex = Exercise(
             name=clean_name,
             target_muscle_group=muscle,
@@ -104,6 +217,83 @@ def resolve_or_create_exercise(
     db.add(new_ex)
     db.flush()
     return new_ex
+
+def repair_corrupted_sessions(db: Session, user_id: Optional[int] = None):
+    """
+    Repairs historical sessions where an old frontend bug mapped all exercises in a
+    non-chest session (e.g., Leg workout '腿部'/'臀腿', Back workout '背部', Shoulder workout '肩部')
+    to '槓鈴平板臥推' (id=1) or '保加利亞分腿蹲'.
+    Preserves the user's exact recorded weights, reps, set_numbers, and 1RM!
+    """
+    split_default_names = {
+        "LEGS": ["槓鈴頸後深蹲", "羅馬尼亞硬舉 (RDL)", "機械斜板腿推 (倒蹬機)", "坐姿機械腿屈伸 (練股四頭)", "站姿槓鈴提踵 (練小腿)"],
+        "BACK": ["滑輪高位下拉", "槓鈴俯身划船", "單臂啞鈴划船", "坐姿繩索划船", "站姿槓鈴二頭彎舉"],
+        "SHOULDERS": ["槓鈴站姿肩推 (OHP)", "坐姿啞鈴肩推", "站姿啞鈴側平舉", "繩索面拉 (Face Pull)", "俯身啞鈴飛鳥 (後束)"],
+    }
+
+    query = db.query(WorkoutSession)
+    if user_id is not None:
+        query = query.filter(WorkoutSession.user_id == user_id)
+    sessions = query.all()
+
+    changed = False
+    for sess in sessions:
+        if not sess.sets:
+            continue
+        title = (sess.session_name or "").upper()
+        target_split = None
+        if any(k in title for k in ["腿", "臀", "下肢", "股四頭", "後鏈", "LEGS", "QUADS", "GLUTES"]):
+            target_split = "LEGS"
+        elif any(k in title for k in ["背", "闊背", "拉", "BACK", "PULL"]):
+            target_split = "BACK"
+        elif any(k in title for k in ["肩", "三角肌", "SHOULDER"]):
+            target_split = "SHOULDERS"
+
+        if not target_split:
+            continue
+
+        ex_names_in_sess = set(st.exercise.name for st in sess.sets if st.exercise)
+        # Check if all sets in this session were collapsed into a single wrong fallback exercise
+        if len(ex_names_in_sess) == 1:
+            only_name = next(iter(ex_names_in_sess))
+            is_corrupted_bench = (only_name == "槓鈴平板臥推" and target_split != "CHEST")
+            is_corrupted_split_squat = (only_name == "保加利亞分腿蹲" and len(sess.sets) > 4)
+            if not (is_corrupted_bench or is_corrupted_split_squat):
+                continue
+
+            # Group sets into exercise blocks Whenever set_number resets to 1 (or every 3-4 sets if monotonic)
+            blocks = []
+            current_block = []
+            for st in sess.sets:
+                if current_block and st.set_number <= current_block[-1].set_number:
+                    blocks.append(current_block)
+                    current_block = [st]
+                else:
+                    current_block.append(st)
+            if current_block:
+                blocks.append(current_block)
+
+            # If set_number was monotonic across the whole session, chunk by 3 sets
+            if len(blocks) == 1 and len(sess.sets) >= 6:
+                blocks = [sess.sets[i:i+3] for i in range(0, len(sess.sets), 3)]
+
+            template_names = split_default_names[target_split]
+            for b_idx, block in enumerate(blocks):
+                target_ex_name = template_names[b_idx % len(template_names)]
+                resolved = resolve_or_create_exercise(
+                    db=db,
+                    user_id=sess.user_id,
+                    exercise_id=None,
+                    exercise_name=target_ex_name,
+                    target_muscle_group=target_split
+                )
+                for s_idx, st in enumerate(block):
+                    st.exercise_id = resolved.id
+                    st.set_number = s_idx + 1
+                changed = True
+
+    if changed:
+        db.commit()
 
 # 1. Routines
 @router.get("/routines", response_model=List[RoutineOut])
@@ -217,6 +407,7 @@ def get_sessions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    repair_corrupted_sessions(db=db, user_id=current_user.id)
     sessions = (
         db.query(WorkoutSession)
         .filter(WorkoutSession.user_id == current_user.id)
@@ -530,6 +721,7 @@ def get_muscle_recovery_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    repair_corrupted_sessions(db=db, user_id=current_user.id)
     """
     Calculates muscle recovery percentage based on:
     - Target muscle groups: CHEST, BACK, LEGS, SHOULDERS, ARMS, CORE
@@ -631,11 +823,13 @@ def get_strength_trends(
     """
     Returns 1RM history for all movements trained by the user for plotting strength progression curves.
     """
+    repair_corrupted_sessions(db=db, user_id=current_user.id)
     sets = (
         db.query(
             WorkoutSet.session_id,
             WorkoutSet.exercise_id,
             Exercise.name.label("exercise_name"),
+            Exercise.target_muscle_group.label("target_muscle_group"),
             WorkoutSet.estimated_1rm,
             WorkoutSet.weight_kg,
             WorkoutSet.reps,
@@ -646,7 +840,7 @@ def get_strength_trends(
         .filter(
             WorkoutSession.user_id == current_user.id,
             WorkoutSet.is_completed == True,
-            WorkoutSet.estimated_1rm > 0
+            or_(WorkoutSet.estimated_1rm > 0, WorkoutSet.weight_kg > 0, WorkoutSet.reps > 0)
         )
         .order_by(WorkoutSession.created_at, WorkoutSet.id)
         .all()
@@ -655,17 +849,30 @@ def get_strength_trends(
     # Group by exercise name and session_id (take max 1RM per session for clean progression curve)
     session_best = {}
     exercise_order = []
+    exercise_meta = {}
     for s in sets:
         ex_name = s.exercise_name
         if ex_name not in exercise_order:
             exercise_order.append(ex_name)
+        exercise_meta[ex_name] = {
+            "exercise_id": s.exercise_id,
+            "target_muscle_group": s.target_muscle_group or "CHEST"
+        }
+        calc_1rm = float(s.estimated_1rm or 0.0)
+        if calc_1rm <= 0 and (s.weight_kg or 0) > 0 and (s.reps or 0) > 0:
+            calc_1rm = round(s.weight_kg * (1.0 + s.reps / 30.0), 1)
+        elif calc_1rm <= 0 and (s.reps or 0) > 0:
+            # Bodyweight or reps-only movement fallback so it still plots on trend chart
+            calc_1rm = float(s.reps)
+
         key = (ex_name, s.session_id)
-        if key not in session_best or s.estimated_1rm > session_best[key]["estimated_1rm"]:
+        if key not in session_best or calc_1rm > session_best[key]["estimated_1rm"]:
             session_best[key] = {
                 "date": s.created_at.strftime("%Y-%m-%d"),
-                "estimated_1rm": s.estimated_1rm,
-                "weight_kg": s.weight_kg,
-                "reps": s.reps
+                "estimated_1rm": calc_1rm,
+                "weight_kg": float(s.weight_kg or 0.0),
+                "reps": int(s.reps or 0),
+                "target_muscle_group": s.target_muscle_group or "CHEST"
             }
 
     trends = {name: [] for name in exercise_order}
@@ -673,7 +880,7 @@ def get_strength_trends(
         trends[ex_name].append(record)
 
     active_trends = {k: v for k, v in trends.items() if len(v) > 0}
-    return {"trends": active_trends}
+    return {"trends": active_trends, "exercise_meta": exercise_meta}
 
 # 5. Weekly Comparison Dashboard & 90-Day Rolling Cleanup
 @router.get("/weekly-comparison")

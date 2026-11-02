@@ -60,7 +60,7 @@
       <div class="flex items-center justify-between">
         <span class="text-xs font-bold text-slate-500">已儲存課表 ({{ routines.length }})</span>
         <button
-          @click="showCreateRoutineModal = true"
+          @click="openCreateRoutineModal"
           class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1"
         >
           <Plus class="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@
         <div class="text-xs font-bold text-slate-700 mb-1">尚未建立任何課表</div>
         <div class="text-[11px] text-slate-400 mb-3">可以自訂推拉腿或全身體態課表！</div>
         <button
-          @click="showCreateRoutineModal = true"
+          @click="openCreateRoutineModal"
           class="py-2 px-4 rounded-xl bg-brand-50 text-brand-700 font-bold text-xs border border-brand-200"
         >
           立即建立第一套課表
@@ -93,12 +93,22 @@
             </div>
             <p v-if="r.description" class="text-xs text-slate-500 mt-0.5">{{ r.description }}</p>
           </div>
-          <button
-            @click="deleteRoutine(r.id)"
-            class="text-slate-300 hover:text-rose-500 p-1"
-          >
-            <Trash2 class="w-4 h-4" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              @click="openEditRoutineModal(r)"
+              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              title="編輯課表"
+            >
+              編輯
+            </button>
+            <button
+              @click="deleteRoutine(r.id)"
+              class="text-slate-300 hover:text-rose-500 p-1"
+              title="刪除課表"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Exercise preview list -->
@@ -127,14 +137,23 @@
     <div v-if="activeTab === 'library'" class="space-y-3">
       <!-- Search & Filters -->
       <div class="space-y-2">
-        <div class="relative">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="搜尋動作名稱（例如：臥推、深蹲）..."
-            class="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-500"
-          />
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <Search class="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜尋動作名稱（例如：臥推、深蹲）..."
+              class="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <button
+            @click="openCreateCustomExerciseModal"
+            class="py-2 px-3 rounded-xl bg-brand-50 text-brand-700 border border-brand-200 font-bold text-xs whitespace-nowrap hover:bg-brand-100 active:scale-95 flex items-center gap-1"
+          >
+            <Plus class="w-3.5 h-3.5" />
+            <span>自訂動作</span>
+          </button>
         </div>
 
         <!-- Muscle filter pills -->
@@ -167,15 +186,26 @@
               <div class="flex items-center gap-1.5 mt-1">
                 <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
                 <span class="badge-gray text-[10px]">{{ ex.equipment }}</span>
+                <span v-if="ex.is_custom" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold">自訂</span>
               </div>
             </div>
-            <button
-              v-if="workoutStore.isWorkoutActive"
-              @click="addExerciseToActive(ex)"
-              class="px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 font-bold text-xs hover:bg-brand-100 active:scale-95"
-            >
-              + 加入訓練
-            </button>
+            <div class="flex items-center gap-1.5">
+              <button
+                v-if="ex.is_custom"
+                @click="deleteCustomExercise(ex.id)"
+                class="text-slate-300 hover:text-rose-500 p-1"
+                title="刪除自訂動作"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+              <button
+                v-if="workoutStore.isWorkoutActive"
+                @click="addExerciseToActive(ex)"
+                class="px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 font-bold text-xs hover:bg-brand-100 active:scale-95"
+              >
+                + 加入訓練
+              </button>
+            </div>
           </div>
           <p v-if="ex.instructions" class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg leading-relaxed">
             💡 {{ ex.instructions }}
@@ -243,6 +273,13 @@
               <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
             </div>
             <button
+              @click="openEditSessionModal(s)"
+              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              title="編輯此筆日誌"
+            >
+              編輯
+            </button>
+            <button
               @click="handleDeleteSession(s.id)"
               class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
               title="刪除此筆日誌"
@@ -266,6 +303,23 @@
             </span>
           </div>
         </div>
+
+        <!-- Quick Actions: Repeat Session or Save as Routine -->
+        <div class="flex items-center gap-2 pt-1">
+          <button
+            @click="repeatHistorySession(s)"
+            class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs border border-brand-200/70 active:scale-95 transition-all flex items-center justify-center gap-1"
+          >
+            <Play class="w-3.5 h-3.5" />
+            <span>🔄 再練一次此菜單 (帶入當時重量)</span>
+          </button>
+          <button
+            @click="saveHistorySessionAsRoutine(s)"
+            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all whitespace-nowrap"
+          >
+            📌 存為課表
+          </button>
+        </div>
       </div>
 
       <!-- 90-Day Rolling Cleanup Banner -->
@@ -283,14 +337,14 @@
       </div>
     </div>
 
-    <!-- Create Routine Modal -->
+    <!-- Create / Edit Routine Modal -->
     <div
       v-if="showCreateRoutineModal"
       class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
     >
       <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h3 class="font-black text-slate-900 text-base">建立新課表</h3>
+          <h3 class="font-black text-slate-900 text-base">{{ editingRoutineId ? '編輯課表' : '建立新課表' }}</h3>
           <button @click="showCreateRoutineModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
             <X class="w-5 h-5" />
           </button>
@@ -316,6 +370,9 @@
               <option value="PUSH">推日 (PUSH - 胸/肩/三頭)</option>
               <option value="PULL">拉日 (PULL - 背/二頭)</option>
               <option value="LEGS">腿日 (LEGS - 腿/臀/小腿)</option>
+              <option value="CHEST">胸部專攻 (CHEST)</option>
+              <option value="BACK">背部專攻 (BACK)</option>
+              <option value="SHOULDERS">肩部專攻 (SHOULDERS)</option>
               <option value="CARDIO">有氧日 (CARDIO - 心肺/HIIT/燃脂)</option>
               <option value="UPPER">上半身 (UPPER)</option>
               <option value="LOWER">下半身 (LOWER)</option>
@@ -323,12 +380,30 @@
             </select>
           </div>
 
-          <!-- Select Exercises for routine -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">選擇包含動作 ({{ selectedRoutineExercises.length }})</label>
+          <!-- Select Exercises for routine (with Search & Muscle Filter) -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-slate-700">選擇包含動作 (已選 {{ selectedRoutineExercises.length }} 個)</label>
+            <input
+              v-model="routineExerciseSearch"
+              type="text"
+              placeholder="🔍 搜尋動作名稱（如：深蹲、臥推、下拉）..."
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
+            />
+            <div class="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+              <button
+                v-for="f in muscleFilters"
+                :key="f.key"
+                type="button"
+                @click="routineMuscleFilter = f.key"
+                class="px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all"
+                :class="routineMuscleFilter === f.key ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+              >
+                {{ f.label }}
+              </button>
+            </div>
             <div class="max-h-48 overflow-y-auto space-y-1.5 border border-slate-200 rounded-xl p-2 bg-slate-50">
               <div
-                v-for="ex in allExercises"
+                v-for="ex in filteredRoutinePickerExercises"
                 :key="ex.id"
                 @click="toggleExerciseForRoutine(ex)"
                 class="p-2 rounded-lg text-xs cursor-pointer flex items-center justify-between transition-colors"
@@ -339,6 +414,52 @@
               </div>
             </div>
           </div>
+
+          <!-- Configure sets, reps & order for selected exercises -->
+          <div v-if="selectedRoutineExercises.length > 0" class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">設定目標組數、次數與順序</label>
+            <div
+              v-for="(reItem, idx) in selectedRoutineExercises"
+              :key="reItem.exercise_id"
+              class="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-200 text-xs gap-1.5"
+            >
+              <span class="font-bold text-slate-800 truncate flex-1">{{ idx + 1 }}. {{ reItem.exercise_name }}</span>
+              <div class="flex items-center gap-1">
+                <button
+                  v-if="idx > 0"
+                  type="button"
+                  @click="moveRoutineExercise(idx, -1)"
+                  class="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500 hover:text-slate-800 text-[10px] font-bold"
+                  title="上移"
+                >
+                  ↑
+                </button>
+                <button
+                  v-if="idx < selectedRoutineExercises.length - 1"
+                  type="button"
+                  @click="moveRoutineExercise(idx, 1)"
+                  class="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500 hover:text-slate-800 text-[10px] font-bold"
+                  title="下移"
+                >
+                  ↓
+                </button>
+                <input
+                  v-model.number="reItem.target_sets"
+                  type="number"
+                  min="1"
+                  class="w-11 text-center py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                />
+                <span class="text-[10px] text-slate-500">組×</span>
+                <input
+                  v-model.number="reItem.target_reps"
+                  type="number"
+                  min="1"
+                  class="w-11 text-center py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                />
+                <span class="text-[10px] text-slate-500">次</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex items-center gap-2 pt-2">
@@ -346,10 +467,187 @@
             @click="submitCreateRoutine"
             class="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-extrabold shadow-sm active:scale-95"
           >
-            確定儲存課表
+            {{ editingRoutineId ? '儲存課表修改' : '確定儲存課表' }}
           </button>
           <button
             @click="showCreateRoutineModal = false"
+            class="py-2.5 px-4 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 active:scale-95"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Custom Exercise Modal -->
+    <div
+      v-if="showCustomExerciseModal"
+      class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h3 class="font-black text-slate-900 text-base">新增自訂訓練動作</h3>
+          <button @click="showCustomExerciseModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">動作名稱</label>
+            <input
+              v-model="customExForm.name"
+              type="text"
+              placeholder="例如：史密斯分腿蹲、單臂滑輪側平舉"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">目標肌群</label>
+              <select
+                v-model="customExForm.target_muscle_group"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              >
+                <option value="CHEST">胸部 (CHEST)</option>
+                <option value="BACK">背部 (BACK)</option>
+                <option value="LEGS">腿部 (LEGS)</option>
+                <option value="SHOULDERS">肩部 (SHOULDERS)</option>
+                <option value="ARMS">手臂 (ARMS)</option>
+                <option value="CORE">核心 (CORE)</option>
+                <option value="CARDIO">有氧 (CARDIO)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">器材類型</label>
+              <select
+                v-model="customExForm.equipment"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              >
+                <option value="BARBELL">槓鈴 (BARBELL)</option>
+                <option value="DUMBBELL">啞鈴 (DUMBBELL)</option>
+                <option value="MACHINE">固定器械 (MACHINE)</option>
+                <option value="CABLE">滑輪繩索 (CABLE)</option>
+                <option value="BODYWEIGHT">自重 (BODYWEIGHT)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button
+            @click="submitCustomExercise"
+            class="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-extrabold shadow-sm active:scale-95"
+          >
+            儲存自訂動作
+          </button>
+          <button
+            @click="showCustomExerciseModal = false"
+            class="py-2.5 px-4 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 active:scale-95"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Session History Modal -->
+    <div
+      v-if="showEditSessionModal && editingSession"
+      class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h3 class="font-black text-slate-900 text-base">編輯訓練歷史紀錄</h3>
+          <button @click="showEditSessionModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-100">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">訓練名稱</label>
+              <input
+                v-model="editingSession.session_name"
+                type="text"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">時長 (分鐘)</label>
+              <input
+                v-model.number="editingSession.duration_minutes"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2 max-h-60 overflow-y-auto bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-700">動作與組數明細 ({{ editingSession.sets.length }} 組)</span>
+              <button
+                @click="addSetToEditingSession"
+                class="text-[11px] font-bold text-brand-600 hover:text-brand-700"
+              >
+                + 新增一組
+              </button>
+            </div>
+            <div
+              v-for="(st, idx) in editingSession.sets"
+              :key="idx"
+              class="grid grid-cols-12 gap-1.5 items-center bg-white p-2 rounded-xl border border-slate-100 text-xs"
+            >
+              <div class="col-span-5">
+                <select
+                  v-model="st.exercise_id"
+                  @change="onEditSetExerciseChange(st)"
+                  class="w-full py-1 px-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold"
+                >
+                  <option v-for="ex in allExercises" :key="ex.id" :value="ex.id">{{ ex.name }}</option>
+                </select>
+              </div>
+              <div class="col-span-3 flex items-center gap-0.5">
+                <input
+                  v-model.number="st.weight_kg"
+                  type="number"
+                  step="0.5"
+                  class="w-full text-center py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
+                />
+                <span class="text-[10px] text-slate-400">kg</span>
+              </div>
+              <div class="col-span-3 flex items-center gap-0.5">
+                <input
+                  v-model.number="st.reps"
+                  type="number"
+                  class="w-full text-center py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
+                />
+                <span class="text-[10px] text-slate-400">次</span>
+              </div>
+              <div class="col-span-1 flex justify-end">
+                <button
+                  v-if="editingSession.sets.length > 1"
+                  @click="editingSession.sets.splice(idx, 1)"
+                  class="text-slate-300 hover:text-rose-500"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button
+            @click="submitEditSession"
+            class="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-extrabold shadow-sm active:scale-95"
+          >
+            儲存紀錄修改
+          </button>
+          <button
+            @click="showEditSessionModal = false"
             class="py-2.5 px-4 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 active:scale-95"
           >
             取消
@@ -361,8 +659,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   Plus, Dumbbell, Flame, Play, Trash2, Search, X
 } from 'lucide-vue-next'
@@ -370,9 +668,10 @@ import { useWorkoutStore } from '@/stores/workout'
 import { workoutsAPI, exercisesAPI } from '@/api/client'
 
 const router = useRouter()
+const route = useRoute()
 const workoutStore = useWorkoutStore()
 
-const activeTab = ref('routines')
+const activeTab = ref(route.query.tab === 'history' ? 'history' : (route.query.tab === 'library' ? 'library' : 'routines'))
 const routines = ref([])
 const allExercises = ref([])
 const historySessions = ref([])
@@ -382,9 +681,22 @@ const searchQuery = ref('')
 const selectedMuscleFilter = ref('ALL')
 
 const showCreateRoutineModal = ref(false)
+const editingRoutineId = ref(null)
 const newRoutineTitle = ref('')
 const newRoutineSplit = ref('PUSH')
 const selectedRoutineExercises = ref([])
+const routineExerciseSearch = ref('')
+const routineMuscleFilter = ref('ALL')
+
+const showCustomExerciseModal = ref(false)
+const customExForm = reactive({
+  name: '',
+  target_muscle_group: 'CHEST',
+  equipment: 'BARBELL'
+})
+
+const showEditSessionModal = ref(false)
+const editingSession = ref(null)
 
 const muscleFilters = [
   { key: 'ALL', label: '全部' },
@@ -401,6 +713,14 @@ const filteredExercises = computed(() => {
   return allExercises.value.filter(e => {
     const matchMuscle = selectedMuscleFilter.value === 'ALL' || e.target_muscle_group === selectedMuscleFilter.value
     const matchQuery = !searchQuery.value || e.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || (e.name_en && e.name_en.toLowerCase().includes(searchQuery.value.toLowerCase()))
+    return matchMuscle && matchQuery
+  })
+})
+
+const filteredRoutinePickerExercises = computed(() => {
+  return allExercises.value.filter(e => {
+    const matchMuscle = routineMuscleFilter.value === 'ALL' || e.target_muscle_group === routineMuscleFilter.value
+    const matchQuery = !routineExerciseSearch.value || e.name.toLowerCase().includes(routineExerciseSearch.value.toLowerCase()) || (e.name_en && e.name_en.toLowerCase().includes(routineExerciseSearch.value.toLowerCase()))
     return matchMuscle && matchQuery
   })
 })
@@ -431,10 +751,198 @@ async function fetchExercises() {
 
 async function fetchHistory() {
   try {
-    const res = await workoutsAPI.getSessions({ limit: 20 })
+    const res = await workoutsAPI.getSessions({ limit: 100 })
     historySessions.value = res.data
   } catch (err) {
     console.error('Failed to fetch history:', err)
+  }
+}
+
+function openCreateRoutineModal() {
+  editingRoutineId.value = null
+  newRoutineTitle.value = ''
+  newRoutineSplit.value = 'PUSH'
+  selectedRoutineExercises.value = []
+  routineExerciseSearch.value = ''
+  routineMuscleFilter.value = 'ALL'
+  showCreateRoutineModal.value = true
+}
+
+function openEditRoutineModal(routine) {
+  editingRoutineId.value = routine.id
+  newRoutineTitle.value = routine.title
+  newRoutineSplit.value = routine.target_split || 'PUSH'
+  routineExerciseSearch.value = ''
+  routineMuscleFilter.value = 'ALL'
+  selectedRoutineExercises.value = (routine.exercises || []).map(re => ({
+    exercise_id: re.exercise_id,
+    exercise_name: re.exercise?.name || '動作',
+    target_sets: re.target_sets || 3,
+    target_reps: re.target_reps || 10
+  }))
+  showCreateRoutineModal.value = true
+}
+
+function moveRoutineExercise(idx, dir) {
+  const target = idx + dir
+  if (target < 0 || target >= selectedRoutineExercises.value.length) return
+  const tmp = selectedRoutineExercises.value[idx]
+  selectedRoutineExercises.value[idx] = selectedRoutineExercises.value[target]
+  selectedRoutineExercises.value[target] = tmp
+}
+
+function repeatHistorySession(session) {
+  workoutStore.startWorkoutFromHistorySession(session)
+  router.push('/active-workout')
+}
+
+async function saveHistorySessionAsRoutine(session) {
+  if (!session || !session.sets || session.sets.length === 0) return
+  const grouped = []
+  const mapById = {}
+  session.sets.forEach(st => {
+    const key = `${st.exercise_id}-${st.exercise_name}`
+    if (!mapById[key]) {
+      mapById[key] = {
+        exercise_id: st.exercise_id,
+        exercise_name: st.exercise_name,
+        target_sets: 0,
+        target_reps: Number(st.reps) || 10
+      }
+      grouped.push(mapById[key])
+    }
+    mapById[key].target_sets += 1
+    if ((Number(st.reps) || 0) > mapById[key].target_reps) {
+      mapById[key].target_reps = Number(st.reps)
+    }
+  })
+
+  try {
+    await workoutsAPI.createRoutine({
+      title: `${session.session_name} (歷史轉存)`,
+      target_split: 'FULL_BODY',
+      description: `由 ${formatFullDate(session.created_at)} 訓練紀錄轉存`,
+      exercises: grouped
+    })
+    await fetchRoutines()
+    alert('🎉 已將該次訓練菜單存為「我的課表」！')
+  } catch (err) {
+    alert('轉存課表失敗，請稍後重試')
+  }
+}
+
+function openCreateCustomExerciseModal() {
+  customExForm.name = ''
+  customExForm.target_muscle_group = selectedMuscleFilter.value === 'ALL' ? 'CHEST' : selectedMuscleFilter.value
+  customExForm.equipment = 'BARBELL'
+  showCustomExerciseModal.value = true
+}
+
+async function submitCustomExercise() {
+  if (!customExForm.name.trim()) {
+    alert('請輸入動作名稱')
+    return
+  }
+  try {
+    await exercisesAPI.create({
+      name: customExForm.name.trim(),
+      target_muscle_group: customExForm.target_muscle_group,
+      equipment: customExForm.equipment
+    })
+    showCustomExerciseModal.value = false
+    await fetchExercises()
+  } catch (err) {
+    alert('新增自訂動作失敗')
+  }
+}
+
+async function deleteCustomExercise(id) {
+  if (!confirm('確定要刪除此自訂動作嗎？')) return
+  try {
+    await exercisesAPI.delete(id)
+    await fetchExercises()
+  } catch (err) {
+    alert('刪除失敗')
+  }
+}
+
+function openEditSessionModal(session) {
+  editingSession.value = {
+    id: session.id,
+    routine_id: session.routine_id,
+    session_name: session.session_name,
+    duration_minutes: session.duration_minutes,
+    start_time: session.start_time,
+    end_time: session.end_time,
+    sets: (session.sets || []).map(st => ({
+      exercise_id: st.exercise_id,
+      exercise_name: st.exercise_name,
+      set_number: st.set_number,
+      weight_kg: st.weight_kg,
+      reps: st.reps,
+      rpe: st.rpe || 8.0,
+      is_completed: true
+    }))
+  }
+  showEditSessionModal.value = true
+}
+
+function onEditSetExerciseChange(st) {
+  const found = allExercises.value.find(e => e.id === st.exercise_id)
+  if (found) {
+    st.exercise_name = found.name
+  }
+}
+
+function addSetToEditingSession() {
+  if (!editingSession.value) return
+  const last = editingSession.value.sets[editingSession.value.sets.length - 1]
+  const defaultEx = allExercises.value[0]
+  editingSession.value.sets.push({
+    exercise_id: last ? last.exercise_id : (defaultEx?.id || 1),
+    exercise_name: last ? last.exercise_name : (defaultEx?.name || '動作'),
+    set_number: editingSession.value.sets.length + 1,
+    weight_kg: last ? last.weight_kg : 20,
+    reps: last ? last.reps : 10,
+    rpe: 8.0,
+    is_completed: true
+  })
+}
+
+async function submitEditSession() {
+  if (!editingSession.value) return
+  try {
+    // Recalculate per-exercise set_number sequence
+    const counts = {}
+    const payloadSets = editingSession.value.sets.map(st => {
+      const exId = st.exercise_id
+      counts[exId] = (counts[exId] || 0) + 1
+      const found = allExercises.value.find(e => e.id === exId)
+      return {
+        exercise_id: exId,
+        exercise_name: found ? found.name : st.exercise_name,
+        set_number: counts[exId],
+        weight_kg: Number(st.weight_kg) || 0,
+        reps: Number(st.reps) || 0,
+        rpe: Number(st.rpe) || 8.0,
+        is_completed: true
+      }
+    })
+
+    await workoutsAPI.updateSession(editingSession.value.id, {
+      routine_id: editingSession.value.routine_id,
+      session_name: editingSession.value.session_name,
+      start_time: editingSession.value.start_time,
+      end_time: editingSession.value.end_time,
+      duration_minutes: Number(editingSession.value.duration_minutes) || 45,
+      sets: payloadSets
+    })
+    showEditSessionModal.value = false
+    editingSession.value = null
+    await fetchHistory()
+    await fetchWeeklyStats()
+  } catch (err) {
+    alert('更新訓練紀錄失敗，請稍後重試')
   }
 }
 
@@ -481,6 +989,7 @@ function toggleExerciseForRoutine(ex) {
   } else {
     selectedRoutineExercises.value.push({
       exercise_id: ex.id,
+      exercise_name: ex.name,
       target_sets: 3,
       target_reps: 10
     })
@@ -498,17 +1007,23 @@ async function submitCreateRoutine() {
   }
 
   try {
-    await workoutsAPI.createRoutine({
+    const payload = {
       title: newRoutineTitle.value,
       target_split: newRoutineSplit.value,
       exercises: selectedRoutineExercises.value
-    })
+    }
+    if (editingRoutineId.value) {
+      await workoutsAPI.updateRoutine(editingRoutineId.value, payload)
+    } else {
+      await workoutsAPI.createRoutine(payload)
+    }
     showCreateRoutineModal.value = false
+    editingRoutineId.value = null
     newRoutineTitle.value = ''
     selectedRoutineExercises.value = []
     await fetchRoutines()
   } catch (err) {
-    alert('建立失敗，請稍後重試')
+    alert('儲存失敗，請稍後重試')
   }
 }
 

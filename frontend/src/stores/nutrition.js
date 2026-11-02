@@ -6,11 +6,16 @@ export const useNutritionStore = defineStore('nutrition', () => {
   const dailyProgress = ref(null)
   const weightLogs = ref([])
   const loading = ref(false)
+  const lastQueriedDate = ref(null)
 
   async function fetchTodayProgress(dateStr = null) {
     loading.value = true
+    const target = dateStr || lastQueriedDate.value || null
+    if (dateStr) {
+      lastQueriedDate.value = dateStr
+    }
     try {
-      const res = await nutritionAPI.getProgress(dateStr)
+      const res = await nutritionAPI.getProgress(target)
       dailyProgress.value = res.data
       return res.data
     } catch (err) {
@@ -23,7 +28,17 @@ export const useNutritionStore = defineStore('nutrition', () => {
   async function addMeal(mealData) {
     try {
       const res = await nutritionAPI.addMeal(mealData)
-      await fetchTodayProgress()
+      await fetchTodayProgress(mealData.meal_date || lastQueriedDate.value)
+      return res.data
+    } catch (err) {
+      throw err
+    }
+  }
+
+  async function updateMeal(mealId, mealData) {
+    try {
+      const res = await nutritionAPI.updateMeal(mealId, mealData)
+      await fetchTodayProgress(mealData.meal_date || lastQueriedDate.value)
       return res.data
     } catch (err) {
       throw err
@@ -33,15 +48,15 @@ export const useNutritionStore = defineStore('nutrition', () => {
   async function deleteMeal(mealId) {
     try {
       await nutritionAPI.deleteMeal(mealId)
-      await fetchTodayProgress()
+      await fetchTodayProgress(lastQueriedDate.value)
     } catch (err) {
       throw err
     }
   }
 
-  async function fetchWeightLogs() {
+  async function fetchWeightLogs(limit = 100) {
     try {
-      const res = await nutritionAPI.getWeightLogs(30)
+      const res = await nutritionAPI.getWeightLogs(limit)
       weightLogs.value = res.data
       return res.data
     } catch (err) {
@@ -59,14 +74,32 @@ export const useNutritionStore = defineStore('nutrition', () => {
     }
   }
 
+  async function deleteWeight(weightId) {
+    try {
+      await nutritionAPI.deleteWeight(weightId)
+      await fetchWeightLogs()
+    } catch (err) {
+      throw err
+    }
+  }
+
+  function resetState() {
+    dailyProgress.value = null
+    weightLogs.value = []
+    lastQueriedDate.value = null
+  }
+
   return {
     dailyProgress,
     weightLogs,
     loading,
     fetchTodayProgress,
     addMeal,
+    updateMeal,
     deleteMeal,
     fetchWeightLogs,
-    recordWeight
+    recordWeight,
+    deleteWeight,
+    resetState
   }
 })
