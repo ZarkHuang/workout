@@ -117,6 +117,7 @@
       <div v-if="showLive3DHotspot" class="pt-2">
         <MuscleAvatar3D
           :active-workout-muscles="activeTrainedMuscleGroups"
+          :suggested-aura="'LV2'"
         />
       </div>
     </div>

@@ -33,6 +33,8 @@
     <div v-if="show3DAvatar" class="mb-3.5">
       <MuscleAvatar3D
         :muscles="overview?.muscles || []"
+        :suggested-aura="overview?.suggested_aura"
+        :streak-days="overview?.streak_days || 0"
         @recommend-split="$emit('recommend-split', $event)"
       />
     </div>

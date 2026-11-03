@@ -123,6 +123,9 @@ class MuscleRecoveryOverview(BaseModel):
     muscles: List[MuscleRecoveryStatus]
     recommended_focus: List[str]
     avoid_muscles: List[str]
+    streak_days: int = 0
+    days_since_last_workout: Optional[float] = None
+    suggested_aura: str = "SLOTH"
 
 class PreviousSetItem(BaseModel):
     set_number: int

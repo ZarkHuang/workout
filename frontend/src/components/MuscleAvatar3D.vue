@@ -23,7 +23,7 @@
           :title="currentAura.desc + '（點擊切換下個光環狀態）'"
         >
           <span>{{ currentAura.icon }}</span>
-          <span>{{ currentAura.label }}</span>
+          <span>{{ currentAuraBadgeText }}</span>
           <span class="text-[9px] opacity-70">⇄</span>
         </button>
       </div>
@@ -348,6 +348,14 @@ const props = defineProps({
   activeWorkoutMuscles: {
     type: Array,
     default: () => []
+  },
+  suggestedAura: {
+    type: String,
+    default: null
+  },
+  streakDays: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -382,8 +390,43 @@ const AURA_MODES = [
   { key: 'OFF', level: 0.0, icon: '⚪', label: '純淨模式', desc: '清爽無光環', badge: '⚪ 純淨無光環' },
   { key: 'SLOTH', level: -1.0, icon: '💤', label: '瞌睡偷懶', desc: '好幾天沒動的慵懶模式', badge: '💤 偷懶中 · 光環熄滅' }
 ]
-const currentAuraIndex = ref(0)
+const currentAuraIndex = ref(4) // Defaults to SLOTH until backend suggestedAura arrives
 const currentAura = computed(() => AURA_MODES[currentAuraIndex.value])
+
+const currentAuraBadgeText = computed(() => {
+  const m = currentAura.value
+  const streak = props.streakDays || 0
+  if (m.key === 'LV3') return `⚡ ${streak > 0 ? streak + '天連勝 · ' : ''}極意神境`
+  if (m.key === 'LV2') return `🔥 ${streak > 0 ? streak + '天連勝 · ' : ''}超級賽亞人`
+  if (m.key === 'LV1') return `✨ ${streak > 0 ? streak + '天打卡 · ' : ''}晨曦微光`
+  if (m.key === 'SLOTH') return '💤 偷懶中 · 光環熄滅'
+  return '⚪ 純淨無光環'
+})
+
+function applySuggestedAura(key) {
+  let targetKey = key
+  if (!targetKey) {
+    const hasAnyTrained = props.muscles?.some(m => m.hours_since_last_trained !== null && m.hours_since_last_trained !== undefined)
+    targetKey = hasAnyTrained ? 'LV1' : 'SLOTH'
+  }
+  const idx = AURA_MODES.findIndex(m => m.key === targetKey)
+  if (idx !== -1) {
+    currentAuraIndex.value = idx
+    if (targetKey === 'SLOTH') {
+      currentAction.value = 'SLOTH'
+    } else if (currentAction.value === 'SLOTH') {
+      currentAction.value = 'STAND'
+    }
+  }
+}
+
+watch(
+  () => [props.suggestedAura, props.muscles],
+  () => {
+    applySuggestedAura(props.suggestedAura)
+  },
+  { immediate: true }
+)
 
 function cycleAura() {
   currentAuraIndex.value = (currentAuraIndex.value + 1) % AURA_MODES.length

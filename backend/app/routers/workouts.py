@@ -826,10 +826,75 @@ def get_muscle_recovery_status(
             last_volume_kg=round(vol_float, 1)
         ))
 
+    # -------------------------------------------------------------
+    # Calculate User Workout Streak & Dynamic Avatar Aura Evolution Mode
+    # -------------------------------------------------------------
+    user_sessions = (
+        db.query(WorkoutSession.created_at)
+        .filter(WorkoutSession.user_id == current_user.id)
+        .order_by(desc(WorkoutSession.created_at))
+        .all()
+    )
+
+    streak_days = 0
+    days_since_last_workout = None
+    suggested_aura = "SLOTH"
+
+    if user_sessions:
+        unique_dates = sorted(
+            list({s.created_at.date() for s in user_sessions if s.created_at}),
+            reverse=True
+        )
+
+        most_recent_session_dt = user_sessions[0].created_at
+        if most_recent_session_dt.tzinfo is None:
+            most_recent_session_dt = most_recent_session_dt.replace(tzinfo=timezone.utc)
+
+        days_since_last_workout = round(
+            max(0.0, (now - most_recent_session_dt).total_seconds() / 86400.0), 1
+        )
+
+        today_d = now.date()
+        latest_d = unique_dates[0]
+        days_gap = (today_d - latest_d).days
+
+        # Streak calculation: If trained today (gap == 0) or yesterday (gap == 1), streak is active
+        if days_gap <= 1:
+            check_d = latest_d
+            for d in unique_dates:
+                if d == check_d:
+                    streak_days += 1
+                    check_d -= timedelta(days=1)
+                elif d < check_d:
+                    break
+
+        # Aura Evolution Thresholds:
+        # - Idle >= 3 days: SLOTH (偷懶坐地模式，光環熄滅)
+        # - Streak >= 7: LV3 (⚡ 極意神境)
+        # - Streak >= 3: LV2 (🔥 超級賽亞人爆氣)
+        # - Streak >= 1: LV1 (✨ 晨曦微光)
+        # - Otherwise (e.g. days_gap == 2, streak broken): OFF (⚪ 純淨模式)
+        if days_gap >= 3:
+            suggested_aura = "SLOTH"
+        elif streak_days >= 7:
+            suggested_aura = "LV3"
+        elif streak_days >= 3:
+            suggested_aura = "LV2"
+        elif streak_days >= 1:
+            suggested_aura = "LV1"
+        else:
+            suggested_aura = "OFF"
+    else:
+        # 0 workout sessions recorded -> SLOTH (偷懶未開練模式)
+        suggested_aura = "SLOTH"
+
     return MuscleRecoveryOverview(
         muscles=results,
         recommended_focus=recovered_muscles if recovered_muscles else ["全身輕量適應 / 主動恢復"],
-        avoid_muscles=fatigued_muscles
+        avoid_muscles=fatigued_muscles,
+        streak_days=streak_days,
+        days_since_last_workout=days_since_last_workout,
+        suggested_aura=suggested_aura
     )
 
 # 4. Strength Trends & 1RM
