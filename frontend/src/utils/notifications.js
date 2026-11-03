@@ -62,6 +62,87 @@ export function triggerVibration(pattern = [200, 100, 200, 100, 300]) {
   }
 }
 
+/**
+ * High-Five Crisp Acoustic Slap + Victory Chime Synthesizer
+ */
+export function playHighFiveSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const now = ctx.currentTime
+
+    // 1. Crisp handclap noise snap (20ms fast burst)
+    const bufferSize = Math.floor(ctx.sampleRate * 0.08)
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018))
+    }
+    const noise = ctx.createBufferSource()
+    noise.buffer = buffer
+    const noiseFilter = ctx.createBiquadFilter()
+    noiseFilter.type = 'bandpass'
+    noiseFilter.frequency.setValueAtTime(1200, now)
+    noiseFilter.Q.setValueAtTime(1.8, now)
+    const noiseGain = ctx.createGain()
+    noiseGain.gain.setValueAtTime(0.85, now)
+    noiseGain.gain.exponentialRampToValueAtTime(0.005, now + 0.08)
+    noise.connect(noiseFilter)
+    noiseFilter.connect(noiseGain)
+    noiseGain.connect(ctx.destination)
+    noise.start(now)
+
+    // 2. Resonant palm body impact thud (160Hz -> 50Hz)
+    const thud = ctx.createOscillator()
+    const thudGain = ctx.createGain()
+    thud.type = 'sine'
+    thud.frequency.setValueAtTime(160, now)
+    thud.frequency.exponentialRampToValueAtTime(50, now + 0.11)
+    thudGain.gain.setValueAtTime(0.65, now)
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.11)
+    thud.connect(thudGain)
+    thudGain.connect(ctx.destination)
+    thud.start(now)
+    thud.stop(now + 0.12)
+
+    // 3. Ascending victory fanfare chime (C5 -> E5 -> G5 -> C6)
+    const fanfareTones = [523.25, 659.25, 783.99, 1046.50]
+    fanfareTones.forEach((freq, idx) => {
+      const osc = ctx.createOscillator()
+      const g = ctx.createGain()
+      const startTime = now + 0.12 + idx * 0.08
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, startTime)
+      g.gain.setValueAtTime(0.3, startTime)
+      g.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45)
+      osc.connect(g)
+      g.connect(ctx.destination)
+      osc.start(startTime)
+      osc.stop(startTime + 0.45)
+    })
+  } catch (e) {
+    console.log('High-five audio played with error:', e)
+  }
+}
+
+/**
+ * Native Web Speech API Audio Cheer
+ */
+export function speakCheer(text = '太棒了！今日挑戰達成，為你的堅持喝采！') {
+  if (!('speechSynthesis' in window)) return
+  try {
+    window.speechSynthesis.cancel()
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang = 'zh-TW'
+    utter.rate = 1.05
+    utter.pitch = 1.15
+    window.speechSynthesis.speak(utter)
+  } catch (e) {
+    console.log('Speech synthesis error:', e)
+  }
+}
+
 export async function sendRestNotification(title = '🔔 休息時間到！', body = '準備進行下一組動作，保持專注 💪') {
   playTimerChime()
   triggerVibration()

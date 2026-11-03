@@ -2,15 +2,30 @@
   <div class="rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-sm relative select-none">
     <!-- Top Bar: Boy / Girl Switcher & 360° Camera Controls -->
     <div class="px-3 pt-3 pb-2 flex items-center justify-between gap-1.5 flex-wrap border-b border-slate-100 bg-slate-50/80">
-      <!-- Automatic Character Badge based on User Profile Gender -->
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-        <span class="text-sm">{{ isFemale ? '👧' : '👦' }}</span>
-        <span class="text-xs font-black text-slate-800">
-          {{ isFemale ? '活力馬尾女' : '熱血格鬥肌霸' }}
-        </span>
-        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-500">
-          3D 即時體態
-        </span>
+      <!-- Automatic Character Badge based on User Profile Gender + Clickable Streak Aura Badge -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+          <span class="text-sm">{{ isFemale ? '👧' : '👦' }}</span>
+          <span class="text-xs font-black text-slate-800">
+            {{ isFemale ? '活力馬尾女' : '熱血格鬥肌霸' }}
+          </span>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-500">
+            3D 即時體態
+          </span>
+        </div>
+
+        <!-- Streak Aura Power Badge (Clickable to switch Aura / Sloth Mode!) -->
+        <button
+          type="button"
+          @click="cycleAura"
+          class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black transition-all border cursor-pointer active:scale-95 shadow-2xs"
+          :class="getAuraBadgeClass(currentAura.key)"
+          :title="currentAura.desc + '（點擊切換下個光環狀態）'"
+        >
+          <span>{{ currentAura.icon }}</span>
+          <span>{{ currentAura.label }}</span>
+          <span class="text-[9px] opacity-70">⇄</span>
+        </button>
       </div>
 
       <!-- 3D View Angle, Thermal Glow Toggle & Auto-Spin Controls -->
@@ -33,7 +48,7 @@
         </button>
         <button
           type="button"
-          @click="autoRotate = !autoRotate"
+          @click="toggleAutoRotate"
           class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all border"
           :class="autoRotate
             ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
@@ -89,15 +104,21 @@
         class="w-full h-full object-contain"
       ></canvas>
 
-      <!-- Floating Interactive Reaction Speech Bubble (When Character is Clicked!) -->
+      <!-- Floating Interactive Reaction Speech Bubble (When Character is Clicked or in Sloth Mode!) -->
       <transition name="reaction-pop">
         <div
-          v-if="showReactionBubble"
-          class="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-1.5 bg-slate-900/95 text-white backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-xl border border-white/20 text-xs font-black animate-bounce whitespace-nowrap"
+          v-if="showReactionBubble || currentAction === 'SLOTH'"
+          class="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-1.5 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-xl border text-xs font-black whitespace-nowrap"
+          :class="currentAction === 'SLOTH'
+            ? 'bg-indigo-950/95 text-indigo-100 border-indigo-400/40 animate-pulse'
+            : 'bg-slate-900/95 text-white border-white/20 animate-bounce'"
         >
-          <span class="text-base">{{ reactionEmoji }}</span>
-          <span>{{ reactionMessage }}</span>
-          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900/95 rotate-45 border-r border-b border-white/20"></div>
+          <span class="text-base">{{ currentAction === 'SLOTH' ? '💤' : reactionEmoji }}</span>
+          <span>{{ currentAction === 'SLOTH' ? '呼... 偷懶好舒服... 快帶我去運動點燃光環！' : reactionMessage }}</span>
+          <div
+            class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rotate-45 border-r border-b"
+            :class="currentAction === 'SLOTH' ? 'bg-indigo-950/95 border-indigo-400/40' : 'bg-slate-900/95 border-white/20'"
+          ></div>
         </div>
       </transition>
 
@@ -340,17 +361,60 @@ const isFemale = computed(() => {
 })
 const gender = computed(() => (isFemale.value ? 'FEMALE' : 'MALE'))
 
-// 6 Cute 3D Clay Workout Animations
+// 7 Cute 3D Clay Workout Animations
 const workoutActions = [
   { key: 'STAND', id: 5, icon: '🧍', label: '直立站姿' },
   { key: 'RUN', id: 1, icon: '🏃', label: '活力慢跑' },
   { key: 'HURDLE', id: 0, icon: '👟', label: '飛躍跨欄' },
   { key: 'CURL', id: 2, icon: '💪', label: '啞鈴彎舉' },
   { key: 'SQUAT', id: 3, icon: '🏋️', label: '深蹲訓練' },
-  { key: 'PRESS', id: 4, icon: '🙌', label: '活力肩推' }
+  { key: 'PRESS', id: 4, icon: '🙌', label: '活力肩推' },
+  { key: 'SLOTH', id: 6, icon: '💤', label: '瞌睡偷懶' }
 ]
 const currentAction = ref('STAND')
 const showHotspotGlow = ref(true)
+
+// Feature 6: Super Saiyan Energy Aura & Evolution Modes
+const AURA_MODES = [
+  { key: 'LV2', level: 2.0, icon: '🔥', label: '超級賽亞人', desc: '金黃烈焰氣場與爆裂衝擊光波', badge: '🔥 連勝中 · 超級賽亞人爆氣' },
+  { key: 'LV3', level: 3.0, icon: '⚡', label: '極意神境', desc: '紫金極致神域氣場', badge: '⚡ 狂暴紫金極意神境' },
+  { key: 'LV1', level: 1.0, icon: '✨', label: '晨曦微光', desc: '金色能量微粒', badge: '✨ 初醒金色微光' },
+  { key: 'OFF', level: 0.0, icon: '⚪', label: '純淨模式', desc: '清爽無光環', badge: '⚪ 純淨無光環' },
+  { key: 'SLOTH', level: -1.0, icon: '💤', label: '瞌睡偷懶', desc: '好幾天沒動的慵懶模式', badge: '💤 偷懶中 · 光環熄滅' }
+]
+const currentAuraIndex = ref(0)
+const currentAura = computed(() => AURA_MODES[currentAuraIndex.value])
+
+function cycleAura() {
+  currentAuraIndex.value = (currentAuraIndex.value + 1) % AURA_MODES.length
+  const mode = AURA_MODES[currentAuraIndex.value]
+  if (mode.key === 'SLOTH') {
+    currentAction.value = 'SLOTH'
+    reactionMessage.value = '好幾天沒運動了... 體能光環熄滅啦！快帶我去鍛鍊～🥺'
+    reactionEmoji.value = '💤'
+    showReactionBubble.value = true
+    triggerVibration([30, 40, 30])
+  } else {
+    if (currentAction.value === 'SLOTH') currentAction.value = 'STAND'
+    if (mode.key === 'LV2') {
+      reactionMessage.value = '喝啊啊！超級賽亞人模式全開！金色衝擊波爆裂！💥'
+      reactionEmoji.value = '🔥'
+    } else {
+      reactionMessage.value = `光環切換：${mode.label}！能量充沛，隨時開練！`
+      reactionEmoji.value = mode.icon
+    }
+    showReactionBubble.value = true
+    triggerVibration([20, 30, 20])
+  }
+}
+
+function getAuraBadgeClass(key) {
+  if (key === 'LV2') return 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-slate-950 font-black border-yellow-300 ring-2 ring-yellow-400/50 shadow-xs'
+  if (key === 'LV3') return 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-400 text-white border-purple-300 ring-2 ring-purple-400/30 shadow-xs'
+  if (key === 'LV1') return 'bg-amber-100 text-amber-900 border-amber-300'
+  if (key === 'SLOTH') return 'bg-indigo-100 text-indigo-900 border-indigo-300'
+  return 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+}
 
 // Interactive Character Click Reaction States
 const reactionMessage = ref('')
@@ -415,9 +479,15 @@ function triggerCharacterReaction(clickedMuscle = null) {
 const yaw = ref(-0.55)
 const targetYaw = ref(null)
 const autoRotate = ref(true)
+const userDisabledAutoRotate = ref(false)
 const isDragging = ref(false)
 const lastPointerX = ref(0)
 const dragMoved = ref(false)
+
+function toggleAutoRotate() {
+  autoRotate.value = !autoRotate.value
+  userDisabledAutoRotate.value = !autoRotate.value
+}
 
 const selectedMuscleGroup = ref('LEGS')
 const glCanvasRef = ref(null)
@@ -593,7 +663,7 @@ function selectMuscle(muscleGroup) {
 function onPointerDown(e) {
   isDragging.value = true
   dragMoved.value = false
-  autoRotate.value = false
+  // Retain autoRotate state: during drag isDragging is true so yaw doesn't auto-increment.
   targetYaw.value = null
   lastPointerX.value = e.clientX
 }
@@ -609,6 +679,10 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   if (!isDragging.value) return
   isDragging.value = false
+  // Automatically resume rotating unless user explicitly toggled it off via the button!
+  if (!userDisabledAutoRotate.value) {
+    autoRotate.value = true
+  }
   if (!dragMoved.value && glCanvasRef.value) {
     const rect = glCanvasRef.value.getBoundingClientRect()
     const xPct = ((e.clientX - rect.left) / rect.width) * 100
@@ -661,6 +735,7 @@ uniform vec3 uMuscleStatus123; // x=CHEST(1), y=BACK(2), z=SHOULDERS(3)
 uniform vec3 uMuscleStatus456; // x=ARMS(4), y=CORE(5), z=LEGS(6)
 uniform vec3 uHeadCenter;
 uniform float uClickTime;
+uniform float uAuraLevel;
 
 // Smooth Minimum (Polynomial smin for seamless Blender 3D Clay blending!)
 float smin(float a, float b, float k) {
@@ -865,7 +940,7 @@ HitInfo mapScene(vec3 p) {
     rElbow = vec3( 0.19, 0.18 + bounceY, 0.13 + sq * 0.11);
     lWrist = vec3(-0.10, 0.23 + bounceY, 0.28 + sq * 0.14);
     rWrist = vec3( 0.10, 0.23 + bounceY, 0.28 + sq * 0.14);
-  } else {
+  } else if (uAction == 4) {
     // ACTION 4: OVERHEAD SHOULDER PRESS
     showDumbbells = true;
     float pw = 0.5 + 0.5 * sin(t * 1.2);
@@ -876,6 +951,23 @@ HitInfo mapScene(vec3 p) {
     rElbow = vec3( 0.26 - pw * 0.04, 0.28 + pw * 0.20 + bounceY, 0.02);
     lWrist = vec3(-0.22 + pw * 0.05, 0.48 + pw * 0.25 + bounceY, 0.03);
     rWrist = vec3( 0.22 - pw * 0.05, 0.48 + pw * 0.25 + bounceY, 0.03);
+  } else {
+    // ACTION 6: SLOTH / SLEEPY POSTURE (瞌睡偷懶)
+    float breath = sin(t * 0.5) * 0.012;
+    bounceY += -0.16 + breath;
+    leanZ = -0.05;
+    lHip = vec3(-0.11, -0.05 + bounceY, -0.02);
+    rHip = vec3( 0.11, -0.05 + bounceY, -0.02);
+    lKnee = vec3(-0.16, -0.32 + bounceY, 0.16);
+    rKnee = vec3( 0.16, -0.32 + bounceY, 0.16);
+    lAnkle = vec3(-0.06, -0.56 + bounceY, 0.18);
+    rAnkle = vec3( 0.06, -0.56 + bounceY, 0.18);
+    lShoulder = vec3(-0.16, 0.30 + bounceY, leanZ);
+    rShoulder = vec3( 0.16, 0.30 + bounceY, leanZ);
+    lElbow = vec3(-0.18, 0.10 + bounceY, 0.10);
+    rElbow = vec3( 0.18, 0.10 + bounceY, 0.10);
+    lWrist = vec3(-0.06, 0.04 + bounceY, 0.16);
+    rWrist = vec3( 0.06, 0.04 + bounceY, 0.16);
   }
 
   // Interactive flex gesture on tap/click
@@ -1236,6 +1328,24 @@ void main() {
   // Studio Background with soft floor contact shadow
   vec3 bgCol = mix(vec3(0.95, 0.965, 0.985), vec3(1.0, 1.0, 1.0), 1.0 - length(uv) * 0.35);
 
+  // When Super Saiyan or Divine mode is active, introduce the dramatic Dragon Ball battle sky vignette!
+  if (uAuraLevel >= 1.5) {
+    vec3 animeBg = (uAuraLevel >= 2.5)
+      ? mix(vec3(0.14, 0.06, 0.20), vec3(0.05, 0.02, 0.09), length(uv) * 0.65)
+      : mix(vec3(0.22, 0.09, 0.18), vec3(0.08, 0.04, 0.09), length(uv) * 0.70);
+    bgCol = mix(bgCol, animeBg, 0.88);
+
+    // Radiant background energy rays bursting into the sky (as in Dragon Ball manga/anime)
+    float rayAng = atan(uv.y - 0.05, uv.x);
+    float rayDist = length(vec2(uv.x, uv.y - 0.05));
+    float rayBurst = sin(rayAng * 14.0 + uTime * 4.0) * sin(rayAng * 24.0 - uTime * 6.0);
+    rayBurst = smoothstep(0.20, 0.80, rayBurst) * smoothstep(1.3, 0.30, rayDist);
+    vec3 rayCol = (uAuraLevel >= 2.5) ? vec3(0.85, 0.40, 1.0) : vec3(1.0, 0.85, 0.15);
+    bgCol += rayCol * rayBurst * 0.42;
+  } else if (uAuraLevel > 0.5) {
+    bgCol = mix(bgCol, vec3(0.98, 0.94, 0.88), 0.35);
+  }
+
   // Orbit Camera around Y-axis
   float cy = cos(uYaw);
   float sy = sin(uYaw);
@@ -1247,9 +1357,10 @@ void main() {
   vec3 cv = cross(cu, cw);
   vec3 rd = normalize(uv.x * cu + uv.y * cv + 1.85 * cw);
 
-  // Bounding sphere early exit for high speed
+  // Bounding sphere early exit (Expanded when Saiyan aura is active so flames and shockwaves are never clipped)
+  float boundR = (uAuraLevel > 0.1) ? 2.15 : 1.35;
   float b = dot(ro, rd);
-  float c = dot(ro, ro) - 1.35 * 1.35;
+  float c = dot(ro, ro) - boundR * boundR;
   if (b * b - c < 0.0) {
     gl_FragColor = vec4(bgCol, 1.0);
     return;
@@ -1263,25 +1374,122 @@ void main() {
       float distFromOrigin = length(fp.xz);
       float shadowAlpha = smoothstep(0.68, 0.05, distFromOrigin) * 0.22;
       bgCol = mix(bgCol, vec3(0.45, 0.52, 0.62), shadowAlpha);
+
+      // Super Saiyan Ground Energy Shockwave Blast Rings (Option 6)
+      if (uAuraLevel > 0.1) {
+        vec3 groundAuraCol = (uAuraLevel >= 2.5) 
+          ? vec3(0.85, 0.30, 0.98) 
+          : ((uAuraLevel >= 1.5) ? vec3(1.0, 0.88, 0.15) : vec3(0.98, 0.75, 0.20));
+        for (int gr = 0; gr < 2; gr++) {
+          float grPhase = fract(uTime * 1.0 + float(gr) * 0.5);
+          float grRadius = 0.15 + grPhase * 0.85;
+          float grDist = abs(distFromOrigin - grRadius);
+          float grAlpha = smoothstep(0.08, 0.0, grDist) * (1.0 - grPhase) * (1.0 - grPhase);
+          bgCol += groundAuraCol * grAlpha * 1.4;
+        }
+      }
     }
   }
 
-  // Raymarch 3D Clay Scene
-  float t = 1.2;
+  // Raymarch 3D Clay Scene & Track Closest Distance for Ki Wave Silhouette
+  float t = 1.0;
   HitInfo hit = HitInfo(100.0, 0.0, 0);
   bool didHit = false;
-  for (int i = 0; i < 56; i++) {
+  float minD = 100.0;
+  vec3 closestP = ro;
+
+  for (int i = 0; i < 58; i++) {
     vec3 p = ro + rd * t;
     hit = mapScene(p);
+    if (hit.d < minD) {
+      minD = hit.d;
+      closestP = p;
+    }
     if (hit.d < 0.0025) {
       didHit = true;
       break;
     }
-    t += hit.d * 0.9;
-    if (t > 4.0) break;
+    t += hit.d * 0.88;
+    if (t > 4.2) break;
   }
 
   if (!didHit) {
+    // 🌟 SUPER SAIYAN MASSIVE GOLDEN KI FLAMES & EXPANDING BLAST SHOCKWAVES (Option 6)
+    if (uAuraLevel > 0.1) {
+      vec3 auraCoreCol;
+      vec3 auraMidCol;
+      vec3 auraOuterCol;
+      vec3 waveCol;
+
+      if (uAuraLevel >= 2.5) {
+        // LV3: Divine Ultra Instinct / God Mode (Purple-Magenta & Divine Cyan)
+        auraCoreCol = vec3(0.95, 0.90, 1.0);
+        auraMidCol = vec3(0.85, 0.28, 0.98);
+        auraOuterCol = vec3(0.40, 0.10, 0.85);
+        waveCol = vec3(0.90, 0.45, 1.0);
+      } else if (uAuraLevel >= 1.5) {
+        // LV2: SUPER SAIYAN (Pure Blazing Golden Yellow Ki & Electric Sparks!)
+        auraCoreCol = vec3(1.0, 1.0, 0.72);      // Blinding white-yellow core
+        auraMidCol = vec3(1.0, 0.88, 0.08);       // Intense Dragon Ball lemon/golden yellow
+        auraOuterCol = vec3(1.0, 0.52, 0.02);     // Fiery gold-orange outer flames
+        waveCol = vec3(1.0, 0.95, 0.25);          // Radiant yellow blast wave
+      } else {
+        // LV1: Dawn golden embers
+        auraCoreCol = vec3(1.0, 0.95, 0.60);
+        auraMidCol = vec3(1.0, 0.75, 0.18);
+        auraOuterCol = vec3(0.95, 0.45, 0.08);
+        waveCol = vec3(1.0, 0.82, 0.20);
+      }
+
+      // 1. Spiky Jagged Ki Flame Outline (Dragon Ball anime flames roaring upwards)
+      float phi = atan(closestP.z, closestP.x);
+      float upY = closestP.y * 6.5 - uTime * 15.0;
+      float upFast = closestP.y * 12.0 - uTime * 25.0;
+
+      // Jagged triangular flame spikes pointing outwards
+      float spikeA = abs(fract(phi * 2.5 + upY * 0.15) * 2.0 - 1.0);
+      float spikeB = abs(fract(phi * 4.2 - upFast * 0.12) * 2.0 - 1.0);
+      float spikes = pow(spikeA * 0.65 + spikeB * 0.35, 1.4);
+
+      // Flame boundary extends further out around torso, shoulders and above head
+      float flameThickness = 0.14 + 0.18 * spikes + 0.04 * sin(closestP.y * 18.0 - uTime * 20.0);
+      flameThickness += 0.10 * smoothstep(-0.2, 0.65, closestP.y); // Wider around upper body
+      flameThickness += 0.14 * smoothstep(0.45, 0.85, closestP.y); // Shoots high above head!
+
+      // Flame Intensity & Layering
+      float dFlame = minD - flameThickness;
+      float flameFactor = smoothstep(0.06, -0.04, dFlame) * smoothstep(-0.85, -0.55, closestP.y);
+      float coreFactor = smoothstep(0.04, 0.0, minD);
+      vec3 flameColor = mix(mix(auraOuterCol, auraMidCol, flameFactor), auraCoreCol, coreFactor);
+
+      // 2. EXPANDING EXPLOSIVE YELLOW ENERGY BLAST WAVES (黃色光波)
+      float shockwave = 0.0;
+      for (int w = 0; w < 3; w++) {
+        float wavePhase = fract(uTime * 1.35 + float(w) * 0.333);
+        float waveRadius = 0.03 + wavePhase * 0.72; // Expands outward from body up to 0.75 units!
+        float waveDist = abs(minD - waveRadius);
+        float waveThick = 0.036 * (1.0 + wavePhase * 0.7);
+        float singleWave = smoothstep(waveThick, 0.002, waveDist) * (1.0 - wavePhase) * (1.0 - wavePhase * 0.6);
+        singleWave *= (0.7 + 0.3 * sin(phi * 8.0 - uTime * 12.0 + closestP.y * 10.0));
+        shockwave += singleWave;
+      }
+
+      // 3. SUPER SAIYAN CRACKLING LIGHTNING SPARKS (SSJ2 金色與青白閃電)
+      float lightningNoise = sin(closestP.y * 45.0 - uTime * 38.0 + sin(phi * 14.0) * 8.0);
+      float spark = step(0.93, lightningNoise) * smoothstep(0.38, 0.0, minD);
+      vec3 sparkCol = vec3(1.0, 1.0, 0.9) * spark * 3.0;
+
+      // 4. Soft outer ambient aura glow
+      float ambientKi = smoothstep(0.75, 0.0, minD) * 0.35;
+
+      // Combine All Ki Energy Components
+      vec3 totalKi = flameColor * flameFactor * 1.6 + waveCol * shockwave * 2.6 + sparkCol + auraMidCol * ambientKi;
+      float totalAlpha = clamp(flameFactor * 1.3 + shockwave * 1.8 + ambientKi * 1.2, 0.0, 1.0);
+
+      // Render onto canvas with strong additive and alpha blending
+      bgCol = mix(bgCol, totalKi, totalAlpha * 0.92);
+      bgCol += totalKi * 0.55;
+    }
     gl_FragColor = vec4(bgCol, 1.0);
     return;
   }
@@ -1302,11 +1510,33 @@ void main() {
   }
 
   if (hit.mat > 1.5 && hit.mat < 2.5) {
-    // 2.0 Hair (Dark Charcoal for Boy, Warm Chocolate Brown for Girl)
-    baseCol = (uGender < 0.5) ? vec3(0.20, 0.19, 0.21) : vec3(0.32, 0.18, 0.14);
+    // 2.0 Hair
+    if (uAuraLevel >= 1.5 && uAuraLevel < 2.5) {
+      // 🌟 SUPER SAIYAN GLOWING GOLDEN BLONDE HAIR!
+      baseCol = vec3(1.0, 0.88, 0.18);
+      roughness = 0.28;
+    } else if (uAuraLevel >= 2.5) {
+      // ⚡ ULTRA INSTINCT SILVER-PURPLE HAIR!
+      baseCol = vec3(0.92, 0.88, 1.0);
+      roughness = 0.25;
+    } else {
+      // Normal Hair (Dark Charcoal for Boy, Warm Chocolate Brown for Girl)
+      baseCol = (uGender < 0.5) ? vec3(0.20, 0.19, 0.21) : vec3(0.32, 0.18, 0.14);
+    }
   } else if (hit.mat > 2.5 && hit.mat < 3.5) {
     // 3.0 Eyes & Brows (with dual-sparkle cute anime catchlights!)
-    baseCol = vec3(0.10, 0.08, 0.08);
+    if (uAuraLevel >= 1.5 && uAuraLevel < 2.5) {
+      // Super Saiyan Golden Eyebrows + Emerald-Cyan Eyes!
+      if (pos.y > uHeadCenter.y + 0.015) {
+        baseCol = vec3(1.0, 0.86, 0.15); // Golden Eyebrows
+      } else {
+        baseCol = vec3(0.12, 0.90, 0.72); // Fierce Emerald-Cyan Eyes
+      }
+    } else if (uAuraLevel >= 2.5) {
+      baseCol = vec3(0.85, 0.90, 1.0); // Divine Silver Eyes
+    } else {
+      baseCol = vec3(0.10, 0.08, 0.08);
+    }
     roughness = 0.16;
     float sp1 = smoothstep(0.012, 0.005, length(vec2(abs(pos.x) - 0.072, pos.y - uHeadCenter.y - 0.022)));
     float sp2 = smoothstep(0.007, 0.002, length(vec2(abs(pos.x) - 0.084, pos.y - uHeadCenter.y - 0.035)));
@@ -1326,9 +1556,13 @@ void main() {
   } else if (hit.mat > 6.5 && hit.mat < 7.5) {
     // 7.0 Sneaker Upper
     baseCol = (uGender < 0.5) ? vec3(0.20, 0.46, 0.94) : vec3(0.64, 0.40, 0.88);
-  } else if (hit.mat > 7.5) {
+  } else if (hit.mat > 7.5 && hit.mat < 8.5) {
     // 8.0 Dark Grey Props
     baseCol = vec3(0.38, 0.42, 0.48);
+  } else if (hit.mat > 8.5) {
+    // 9.0 Warm Terracotta / Coral Red Smiling Mouth Curve (Reference Image 1!)
+    baseCol = vec3(0.86, 0.34, 0.28);
+    roughness = 0.45;
   }
 
   // Muscle Recovery Thermal Subsurface Glow - LOCALIZED HOTSPOT RADAR (Doesn't dye garments!)
@@ -1405,6 +1639,29 @@ void main() {
   col *= mix(0.68, 1.0, ao);
   col += glowEmission * (0.5 + 0.8 * fresnel);
 
+  // Super Saiyan Blazing Golden Rim Light & Surface Ki Energy Waves (Option 6)
+  if (uAuraLevel > 0.1) {
+    vec3 auraRimCol = (uAuraLevel >= 2.5) 
+      ? vec3(0.85, 0.30, 0.98) 
+      : ((uAuraLevel >= 1.5) ? vec3(1.0, 0.88, 0.15) : vec3(0.98, 0.75, 0.20));
+    
+    // 1. Dazzling Golden Fresnel Rim Light around the silhouette
+    float fresnelAura = pow(1.0 - max(0.0, dot(nor, -rd)), 1.8);
+    float electricPulse = 0.75 + 0.25 * sin(uTime * 10.0 + pos.y * 14.0);
+    col += auraRimCol * fresnelAura * electricPulse * 1.8;
+
+    // 2. Surging Golden Ki energy waves licking across chest, arms, and clothing
+    if (uAuraLevel >= 1.5) {
+      float frontKi = sin(pos.y * 16.0 - uTime * 14.0 + sin(pos.x * 14.0) * 3.5);
+      float frontKi2 = sin(pos.y * 24.0 - uTime * 22.0 + pos.z * 12.0);
+      if (frontKi > 0.50 && frontKi2 > 0.20) {
+        col += vec3(1.0, 0.92, 0.35) * (frontKi - 0.50) * 2.0;
+      }
+      // Global ambient golden bath on the whole character
+      col = mix(col, col * vec3(1.15, 1.08, 0.85) + vec3(0.12, 0.09, 0.01), 0.45);
+    }
+  }
+
   // Tone mapping & gamma adjustment for crisp pastel-vibrant studio colors
   col = clamp(col, 0.0, 1.0);
   gl_FragColor = vec4(col, 1.0);
@@ -1467,7 +1724,8 @@ function initWebGL() {
     uMuscleStatus123: gl.getUniformLocation(program, 'uMuscleStatus123'),
     uMuscleStatus456: gl.getUniformLocation(program, 'uMuscleStatus456'),
     uHeadCenter: gl.getUniformLocation(program, 'uHeadCenter'),
-    uClickTime: gl.getUniformLocation(program, 'uClickTime')
+    uClickTime: gl.getUniformLocation(program, 'uClickTime'),
+    uAuraLevel: gl.getUniformLocation(program, 'uAuraLevel')
   }
   return true
 }
@@ -1528,11 +1786,12 @@ function renderLoop(timestamp = 0) {
 
   const sec = timestamp * 0.001
   const tAnim = sec * 3.2
-  let headY = 0.62
-  if (actId === 5) headY = 0.62 + Math.sin(tAnim * 0.8) * 0.012
-  else if (actId === 0) headY = 0.62 + 0.14 + (0.5 + 0.5 * Math.sin(tAnim * 0.9)) * 0.10
-  else if (actId === 1) headY = 0.62 + Math.abs(Math.cos(tAnim * 1.4)) * 0.06
-  else if (actId === 3) headY = 0.62 - (0.5 + 0.5 * Math.sin(tAnim * 1.1)) * 0.24
+  let headY = 0.575
+  if (actId === 5) headY = 0.575 + Math.sin(tAnim * 0.8) * 0.010
+  else if (actId === 0) headY = 0.575 + 0.14 + (0.5 + 0.5 * Math.sin(tAnim * 0.9)) * 0.09
+  else if (actId === 1) headY = 0.575 + Math.abs(Math.cos(tAnim * 1.35)) * 0.055
+  else if (actId === 3) headY = 0.575 - (0.5 + 0.5 * Math.sin(tAnim * 1.1)) * 0.22
+  else if (actId === 6) headY = 0.575 - 0.16 + Math.sin(tAnim * 0.5) * 0.012
 
   gl.useProgram(program)
   gl.uniform2f(uniforms.uResolution, w, h)
@@ -1544,32 +1803,33 @@ function renderLoop(timestamp = 0) {
   gl.uniform1i(uniforms.uSelectedMuscle, MUSCLE_INDEX[selectedMuscleGroup.value] || 1)
   gl.uniform3f(uniforms.uMuscleStatus123, statusArr[1], statusArr[2], statusArr[3])
   gl.uniform3f(uniforms.uMuscleStatus456, statusArr[4], statusArr[5], statusArr[6])
-  gl.uniform3f(uniforms.uHeadCenter, 0.0, headY, 0.02)
+  gl.uniform3f(uniforms.uHeadCenter, 0.0, headY, 0.015)
   const clickSec = sec - clickBounceTime.value
   gl.uniform1f(uniforms.uClickTime, clickSec >= 0 && clickSec < 10.0 ? clickSec : 999.0)
+  gl.uniform1f(uniforms.uAuraLevel, currentAura.value.level)
 
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 
-  // Update 3D-projected floating pins
+  // Update 3D-projected floating pins with slender athletic anchors
   const cosY = Math.cos(yaw.value)
   const sinY = Math.sin(yaw.value)
   const isStanding = actId === 5
   const pinAnchors = isStanding
     ? {
-        SHOULDERS: { x: -0.30, y: 0.32, z: 0.05, frontOnly: false },
-        CHEST: { x: 0.0, y: 0.25, z: 0.22, frontOnly: true },
-        CORE: { x: 0.0, y: 0.06, z: 0.20, frontOnly: true },
-        BACK: { x: 0.0, y: 0.24, z: -0.22, backOnly: true },
-        ARMS: { x: 0.36, y: 0.06, z: 0.05, frontOnly: false },
-        LEGS: { x: 0.25, y: -0.42, z: 0.06, frontOnly: false }
+        SHOULDERS: { x: -0.22, y: 0.35, z: 0.05, frontOnly: false },
+        CHEST: { x: 0.0, y: 0.28, z: 0.16, frontOnly: true },
+        CORE: { x: 0.0, y: 0.09, z: 0.15, frontOnly: true },
+        BACK: { x: 0.0, y: 0.28, z: -0.16, backOnly: true },
+        ARMS: { x: 0.26, y: 0.10, z: 0.05, frontOnly: false },
+        LEGS: { x: 0.18, y: -0.38, z: 0.05, frontOnly: false }
       }
     : {
-        SHOULDERS: { x: -0.34, y: 0.36, z: 0.05, frontOnly: false },
-        CHEST: { x: 0.0, y: 0.28, z: 0.24, frontOnly: true },
-        CORE: { x: 0.0, y: 0.08, z: 0.22, frontOnly: true },
-        BACK: { x: 0.0, y: 0.26, z: -0.24, backOnly: true },
-        ARMS: { x: 0.42, y: 0.15, z: 0.08, frontOnly: false },
-        LEGS: { x: 0.32, y: -0.42, z: 0.12, frontOnly: false }
+        SHOULDERS: { x: -0.24, y: 0.36, z: 0.05, frontOnly: false },
+        CHEST: { x: 0.0, y: 0.29, z: 0.18, frontOnly: true },
+        CORE: { x: 0.0, y: 0.10, z: 0.16, frontOnly: true },
+        BACK: { x: 0.0, y: 0.29, z: -0.18, backOnly: true },
+        ARMS: { x: 0.28, y: 0.16, z: 0.06, frontOnly: false },
+        LEGS: { x: 0.20, y: -0.38, z: 0.08, frontOnly: false }
       }
 
   projectedMusclePins.value = normalizedMuscles.value.map(m => {

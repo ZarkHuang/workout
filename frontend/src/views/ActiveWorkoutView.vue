@@ -462,6 +462,87 @@
         </div>
       </div>
     </div>
+
+    <!-- High-Five Victory Celebration Party Modal (Option 2) -->
+    <div
+      v-if="showVictoryModal"
+      class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+    >
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl border border-white/10 relative overflow-hidden">
+        <!-- Background Ambient Glow -->
+        <div class="absolute -top-16 -left-16 w-36 h-36 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-16 -right-16 w-36 h-36 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Trophy Icon with Radiant Ping -->
+        <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full bg-amber-400/20 animate-ping"></div>
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/30">
+            <Trophy class="w-8 h-8 text-slate-950" />
+          </div>
+        </div>
+
+        <div>
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30">
+            WORKOUT COMPLETED! 🏆
+          </span>
+          <h2 class="text-xl font-black text-white mt-1">今日訓練圓滿達成！</h2>
+          <p class="text-xs text-slate-400 mt-0.5">汗水不會背叛你，肌群正在超補償修復！</p>
+        </div>
+
+        <!-- Metric Badges Row -->
+        <div class="grid grid-cols-3 gap-2 py-1">
+          <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[9px] text-slate-400">總耗時</div>
+            <div class="text-sm font-black text-emerald-400">{{ finalDurationMinutes }}m</div>
+          </div>
+          <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[9px] text-slate-400">累積總容量</div>
+            <div class="text-sm font-black text-amber-400">{{ currentTotalVolume }}kg</div>
+          </div>
+          <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[9px] text-slate-400">完成組數</div>
+            <div class="text-sm font-black text-cyan-400">{{ completedSetsCount }}組</div>
+          </div>
+        </div>
+
+        <!-- Interactive High-Five Palm Zone -->
+        <div class="p-4 rounded-2xl bg-gradient-to-b from-white/10 to-white/5 border border-white/15 relative overflow-hidden group">
+          <div v-if="!hasHighFived" class="space-y-2">
+            <button
+              type="button"
+              @click="handleHighFive"
+              class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-500 flex items-center justify-center text-4xl shadow-xl shadow-amber-500/30 cursor-pointer active:scale-90 hover:scale-105 transition-all animate-bounce"
+            >
+              ✋
+            </button>
+            <div class="text-xs font-black text-amber-300">
+              👆 點擊手掌與公仔擊掌喝采！
+            </div>
+            <div class="text-[10px] text-slate-400">
+              觸發清脆擊掌聲 · 觸覺震動 · 點燃連勝光環 🔥
+            </div>
+          </div>
+
+          <div v-else class="space-y-2 py-1">
+            <div class="text-4xl animate-bounce">💥</div>
+            <div class="text-sm font-black text-emerald-300">
+              擊掌成功！太猛了！🙌
+            </div>
+            <div class="text-xs text-amber-200">
+              「連續打卡紀錄 +1 · 3D 燃燒光環已點燃！🔥」
+            </div>
+          </div>
+        </div>
+
+        <!-- Exit / Forward Button -->
+        <button
+          @click="finishCelebrationAndGoHome"
+          class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+        >
+          <span>👉 前往首頁欣賞 3D 體態光環</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -475,9 +556,13 @@ import {
 import { useWorkoutStore, matchOrCreateExercise, normalizeExerciseName, isSetEffective } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
 import MuscleAvatar3D from '@/components/MuscleAvatar3D.vue'
+import { playHighFiveSound, speakCheer, triggerVibration } from '@/utils/notifications'
 
 const router = useRouter()
 const workoutStore = useWorkoutStore()
+
+const showVictoryModal = ref(false)
+const hasHighFived = ref(false)
 
 const showLive3DHotspot = ref(false)
 const activeTrainedMuscleGroups = computed(() => {
@@ -751,21 +836,47 @@ async function confirmFinishWorkout() {
   try {
     await workoutStore.finishWorkout(finalDurationMinutes.value, workoutStore.sessionDate)
     showSettlementModal.value = false
+    hasHighFived.value = false
+    showVictoryModal.value = true
     
-    // Confetti celebration
+    // Initial celebration confetti cannon
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 90,
+      spread: 75,
       origin: { y: 0.6 }
     })
-
-    alert('🎉 恭喜完成訓練！已成功寫入日誌並更新肌肉修復時鐘。')
-    router.push('/')
   } catch (err) {
     alert(err.message || '儲存失敗，請稍後再試')
   } finally {
     submitting.value = false
   }
+}
+
+function handleHighFive() {
+  if (hasHighFived.value) return
+  hasHighFived.value = true
+
+  // 1. Crisp handclap acoustic snap & fanfare
+  playHighFiveSound()
+
+  // 2. High-energy celebratory vibration
+  triggerVibration([40, 50, 40, 50, 90])
+
+  // 3. Huge burst of star & gold confetti!
+  confetti({
+    particleCount: 140,
+    spread: 100,
+    origin: { y: 0.5 },
+    colors: ['#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#ffffff']
+  })
+
+  // 4. Voice cheer encouragement
+  speakCheer('太棒了！今日挑戰達成，為你的堅持喝采！')
+}
+
+function finishCelebrationAndGoHome() {
+  showVictoryModal.value = false
+  router.push('/')
 }
 
 function handleCancelWorkout() {
