@@ -45,7 +45,7 @@
           <div class="min-w-0">
             <div class="text-[10px] font-bold text-slate-300 flex items-center gap-1 whitespace-nowrap">
               <span>組間休息</span>
-              <span class="text-[9px] text-emerald-400 font-normal">⏱️ 背景計時中</span>
+              <span class="text-[9px] text-emerald-400 font-normal">背景計時中</span>
             </div>
             <div class="text-lg font-black font-mono text-emerald-400 tracking-wider">
               {{ formattedTime }}
@@ -115,7 +115,7 @@ async function enableNotifications() {
   const perm = await requestNotificationPermission()
   notificationPermission.value = perm
   if (perm === 'granted') {
-    alert('🔔 休息提醒通知已成功啟用！滑開 App 或待機時也能收到提醒。')
+    alert('休息提醒通知已成功啟用，切換 App 或待機時也能收到提醒。')
   }
 }
 

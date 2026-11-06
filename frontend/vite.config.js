@@ -12,9 +12,13 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        cleanupOutdatedCaches: true
+        cleanupOutdatedCaches: true,
+        importScripts: ['/sw-rest-timer.js']
       },
-      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      devOptions: {
+        enabled: true
+      },
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'sw-rest-timer.js'],
       manifest: {
         name: 'FitPulse 脈動健身',
         short_name: 'FitPulse',

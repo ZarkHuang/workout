@@ -1,6 +1,24 @@
 /**
- * FitPulse Native Web Notifications & Sound/Vibration Helper
+ * FitPulse Native Web Notifications, Background Rest Timer & Sound/Vibration Helper
  */
+
+let sharedAudioCtx = null
+let scheduledAudioNodes = []
+let keepAliveSource = null
+let restWorker = null
+let lastNotifiedEndTime = 0
+
+function getOrCreateAudioContext() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  if (!AudioCtx) return null
+  if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+    sharedAudioCtx = new AudioCtx()
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {})
+  }
+  return sharedAudioCtx
+}
 
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) {
@@ -24,24 +42,97 @@ export function getNotificationPermission() {
   return Notification.permission
 }
 
+export function stopScheduledAudioKeepAlive() {
+  scheduledAudioNodes.forEach((node) => {
+    try {
+      node.stop()
+      node.disconnect()
+    } catch (e) {}
+  })
+  scheduledAudioNodes = []
+
+  if (keepAliveSource) {
+    try {
+      keepAliveSource.stop()
+      keepAliveSource.disconnect()
+    } catch (e) {}
+    keepAliveSource = null
+  }
+}
+
+/**
+ * Schedules a hardware-clock Web Audio chime at `delaySeconds` in the future
+ * plus a sub-audible keep-alive buffer so iOS PWA does not suspend the timer
+ * when the user switches to another app during rest.
+ */
+export function scheduleAudioChimeInSeconds(delaySeconds) {
+  try {
+    stopScheduledAudioKeepAlive()
+    const ctx = getOrCreateAudioContext()
+    if (!ctx) return
+
+    const safeDelay = Math.max(0.5, Number(delaySeconds) || 0)
+    const now = ctx.currentTime
+    const chimeStart = now + safeDelay
+
+    // 1. Sub-audible keep-alive buffer during the countdown window
+    const bufferRate = 8000
+    const buffer = ctx.createBuffer(1, bufferRate, bufferRate)
+    const chan = buffer.getChannelData(0)
+    for (let i = 0; i < bufferRate; i++) {
+      chan[i] = (i % 2 === 0 ? 1 : -1) * 0.00002
+    }
+    const silentLoop = ctx.createBufferSource()
+    silentLoop.buffer = buffer
+    silentLoop.loop = true
+    const silentGain = ctx.createGain()
+    silentGain.gain.setValueAtTime(0.0001, now)
+    silentLoop.connect(silentGain)
+    silentGain.connect(ctx.destination)
+    silentLoop.start(now)
+    silentLoop.stop(chimeStart + 1.5)
+    keepAliveSource = silentLoop
+
+    // 2. Hardware-scheduled ascending athletic chime at exact rest completion
+    const tones = [523.25, 659.25, 783.99, 1046.5]
+    tones.forEach((freq, idx) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      const startTime = chimeStart + idx * 0.14
+
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, startTime)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.setValueAtTime(0.35, startTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.38)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(startTime)
+      osc.stop(startTime + 0.4)
+      scheduledAudioNodes.push(osc)
+    })
+  } catch (e) {
+    console.log('Scheduled audio keep-alive fallback:', e)
+  }
+}
+
 export function playTimerChime() {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
-    
-    // Play a dual-tone ascending athletic chime (C5 -> E5 -> G5)
+    const ctx = getOrCreateAudioContext()
+    if (!ctx) return
+
     const tones = [523.25, 659.25, 783.99]
     tones.forEach((freq, idx) => {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       const startTime = ctx.currentTime + idx * 0.12
-      
+
       osc.type = 'sine'
       osc.frequency.setValueAtTime(freq, startTime)
       gain.gain.setValueAtTime(0.3, startTime)
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35)
-      
+
       osc.connect(gain)
       gain.connect(ctx.destination)
       osc.start(startTime)
@@ -67,9 +158,8 @@ export function triggerVibration(pattern = [200, 100, 200, 100, 300]) {
  */
 export function playHighFiveSound() {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
+    const ctx = getOrCreateAudioContext()
+    if (!ctx) return
     const now = ctx.currentTime
 
     // 1. Crisp handclap noise snap (20ms fast burst)
@@ -143,7 +233,111 @@ export function speakCheer(text = '太棒了！今日挑戰達成，為你的堅
   }
 }
 
-export async function sendRestNotification(title = '🔔 休息時間到！', body = '準備進行下一組動作，保持專注 💪') {
+async function postToServiceWorker(message) {
+  if (!('serviceWorker' in navigator)) return
+  try {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage(message)
+      return
+    }
+    const reg = await navigator.serviceWorker.ready
+    if (reg && reg.active) {
+      reg.active.postMessage(message)
+    }
+  } catch (e) {}
+}
+
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'REST_NOTIFICATION_FIRED') {
+      if (event.data.endTime) {
+        lastNotifiedEndTime = Number(event.data.endTime)
+      }
+    }
+  })
+}
+
+export function scheduleBackgroundRestAlert(endTimeMs, title = '休息時間結束', body = '組間休息已結束，準備進行下一組動作', onWorkerReachedZero = null) {
+  const now = Date.now()
+  const delayMs = Math.max(0, endTimeMs - now)
+  const delaySecs = delayMs / 1000
+
+  // Auto-request permission on user gesture if not yet granted/denied
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {})
+  }
+
+  // 1. Hardware Web Audio scheduled chime + background keep-alive
+  scheduleAudioChimeInSeconds(delaySecs)
+
+  // 2. Service Worker background notification schedule
+  postToServiceWorker({
+    type: 'SCHEDULE_REST_NOTIFICATION',
+    endTime: endTimeMs,
+    delayMs,
+    title,
+    body
+  })
+
+  // 3. Dedicated Web Worker timer (less throttled than main-thread setInterval)
+  if (restWorker) {
+    try {
+      restWorker.terminate()
+    } catch (e) {}
+    restWorker = null
+  }
+  try {
+    const workerCode = `
+      let timer = setTimeout(() => {
+        self.postMessage({ type: 'EXPIRED', endTime: ${endTimeMs} });
+      }, ${delayMs});
+      self.onmessage = (e) => {
+        if (e.data === 'STOP') clearTimeout(timer);
+      };
+    `
+    const blob = new Blob([workerCode], { type: 'application/javascript' })
+    const url = URL.createObjectURL(blob)
+    restWorker = new Worker(url)
+    restWorker.onmessage = (e) => {
+      if (e.data && e.data.type === 'EXPIRED') {
+        if (typeof onWorkerReachedZero === 'function') {
+          onWorkerReachedZero()
+        }
+      }
+      URL.revokeObjectURL(url)
+    }
+  } catch (e) {}
+}
+
+export function cancelBackgroundRestAlert() {
+  stopScheduledAudioKeepAlive()
+  postToServiceWorker({ type: 'CANCEL_REST_NOTIFICATION' })
+  if (restWorker) {
+    try {
+      restWorker.postMessage('STOP')
+      restWorker.terminate()
+    } catch (e) {}
+    restWorker = null
+  }
+}
+
+export function hasEndTimeAlreadyNotified(endTimeMs) {
+  return Boolean(endTimeMs && lastNotifiedEndTime === Number(endTimeMs))
+}
+
+export async function sendRestNotification(
+  title = '休息時間結束',
+  body = '組間休息已結束，準備進行下一組動作',
+  endTimeMs = null
+) {
+  if (endTimeMs && lastNotifiedEndTime === Number(endTimeMs)) {
+    return
+  }
+  if (endTimeMs) {
+    lastNotifiedEndTime = Number(endTimeMs)
+  }
+
+  stopScheduledAudioKeepAlive()
   playTimerChime()
   triggerVibration()
 
@@ -162,7 +356,6 @@ export async function sendRestNotification(title = '🔔 休息時間到！', bo
   }
 
   try {
-    // Try service worker notification first (supports background/screen lock)
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.ready
       if (reg && reg.showNotification) {
@@ -170,10 +363,8 @@ export async function sendRestNotification(title = '🔔 休息時間到！', bo
         return
       }
     }
-    // Fallback to standard window Notification
     new Notification(title, options)
   } catch (e) {
-    console.log('Notification dispatch fallback:', e)
     try {
       new Notification(title, options)
     } catch (err) {}

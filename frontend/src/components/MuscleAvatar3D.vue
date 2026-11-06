@@ -1,16 +1,16 @@
 <template>
   <div class="rounded-2xl overflow-hidden bg-white border border-slate-200/90 shadow-sm relative select-none">
-    <!-- Top Bar: Boy / Girl Switcher & 360° Camera Controls -->
-    <div class="px-3 pt-3 pb-2 flex items-center justify-between gap-1.5 flex-wrap border-b border-slate-100 bg-slate-50/80">
-      <!-- Automatic Character Badge based on User Profile Gender + Clickable Streak Aura Badge -->
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span class="text-sm">{{ isFemale ? '👧' : '👦' }}</span>
-          <span class="text-xs font-black text-slate-800">
+    <!-- Top Bar: Character Identity + Aura Switcher (Row 1) & 360° Camera Controls (Row 2) -->
+    <div class="px-3 pt-2.5 pb-2 space-y-2 border-b border-slate-100 bg-slate-50/80">
+      <!-- Row 1: Automatic Character Badge + Fixed-Height Non-Wrapping Aura Switch Button -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 shadow-2xs shrink-0 whitespace-nowrap">
+          <span class="text-sm leading-none">{{ isFemale ? '👧' : '👦' }}</span>
+          <span class="text-xs font-black text-slate-800 whitespace-nowrap">
             {{ isFemale ? '活力馬尾女' : '熱血格鬥肌霸' }}
           </span>
-          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-500">
-            3D 即時體態
+          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap">
+            3D 體態
           </span>
         </div>
 
@@ -18,22 +18,21 @@
         <button
           type="button"
           @click="cycleAura"
-          class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black transition-all border cursor-pointer active:scale-95 shadow-2xs"
+          class="flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-black transition-all border cursor-pointer active:scale-95 shadow-2xs whitespace-nowrap shrink-0"
           :class="getAuraBadgeClass(currentAura.key)"
           :title="currentAura.desc + '（點擊切換下個光環狀態）'"
         >
-          <span>{{ currentAura.icon }}</span>
           <span>{{ currentAuraBadgeText }}</span>
-          <span class="text-[9px] opacity-70">⇄</span>
+          <span class="text-[9px] opacity-75">⇄</span>
         </button>
       </div>
 
-      <!-- 3D View Angle, Thermal Glow Toggle & Auto-Spin Controls -->
-      <div class="flex items-center gap-1">
+      <!-- Row 2: 3D View Angle, Thermal Glow Toggle & Auto-Spin Controls (4-column grid, never wraps!) -->
+      <div class="grid grid-cols-4 gap-1.5">
         <button
           type="button"
           @click="rotateToAngle(-0.55)"
-          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all"
+          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all whitespace-nowrap text-center"
           :class="!autoRotate && Math.cos(yaw) >= 0 ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-600 hover:bg-slate-200'"
         >
           正面
@@ -41,7 +40,7 @@
         <button
           type="button"
           @click="rotateToAngle(Math.PI - 0.55)"
-          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all"
+          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all whitespace-nowrap text-center"
           :class="!autoRotate && Math.cos(yaw) < 0 ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-600 hover:bg-slate-200'"
         >
           背面(背/臀)
@@ -49,7 +48,7 @@
         <button
           type="button"
           @click="toggleAutoRotate"
-          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all border"
+          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all border whitespace-nowrap text-center"
           :class="autoRotate
             ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
@@ -59,27 +58,27 @@
         <button
           type="button"
           @click="showHotspotGlow = !showHotspotGlow"
-          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all border"
+          class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all border whitespace-nowrap text-center"
           :class="showHotspotGlow
             ? 'bg-rose-50 text-rose-700 border-rose-200'
             : 'bg-white text-slate-500 border-slate-200'"
           title="切換公仔身上的肌肉熱點發光顯示"
         >
-          {{ showHotspotGlow ? '🔥 熱點光:開' : '🔥 熱點光:關' }}
+          {{ showHotspotGlow ? '🔥 熱點:開' : '🔥 熱點:關' }}
         </button>
       </div>
     </div>
 
     <!-- Second Bar: Cute 3D Clay Workout Animations -->
-    <div class="px-3 py-1.5 bg-white border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-      <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap flex-shrink-0">🎬 3D 健身動作：</span>
-      <div class="flex items-center gap-1">
+    <div class="px-3 py-1.5 bg-white border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap shrink-0">🎬 動作：</span>
+      <div class="flex items-center gap-1 shrink-0">
         <button
           v-for="act in workoutActions"
           :key="act.key"
           type="button"
           @click="currentAction = act.key"
-          class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold whitespace-nowrap transition-all"
+          class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold whitespace-nowrap shrink-0 transition-all"
           :class="currentAction === act.key
             ? 'bg-slate-900 text-white shadow-2xs'
             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
@@ -291,30 +290,30 @@
         class="p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2"
         :class="getDetailHudClass(activeMuscleDetail.status)"
       >
-        <div class="space-y-0.5 min-w-0">
+        <div class="space-y-0.5 min-w-0 flex-1">
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-xs font-black text-slate-900">{{ activeMuscleDetail.label_zh }}</span>
+            <span class="text-xs font-black text-slate-900 whitespace-nowrap">{{ activeMuscleDetail.label_zh }}</span>
             <span
-              class="text-[10px] font-black px-2 py-0.5 rounded-full"
+              class="text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap shrink-0"
               :class="getHudBadgeClass(activeMuscleDetail.status)"
             >
               {{ getHotspotStatusLabel(activeMuscleDetail.status) }} · {{ activeMuscleDetail.recovery_percentage }}%
             </span>
           </div>
-          <div class="text-[11px] text-slate-600 flex items-center gap-2 flex-wrap">
-            <span v-if="activeMuscleDetail.hours_since_last_trained !== null">
+          <div class="text-[11px] text-slate-600 flex items-center gap-x-2 gap-y-0.5 flex-wrap">
+            <span v-if="activeMuscleDetail.hours_since_last_trained !== null" class="whitespace-nowrap">
               🕒 上次訓練：{{ activeMuscleDetail.hours_since_last_trained }}h 前
             </span>
-            <span v-else>🕒 近期尚未訓練此部位</span>
+            <span v-else class="whitespace-nowrap">🕒 近期尚未訓練此部位</span>
 
             <span
               v-if="activeMuscleDetail.hours_until_recovered > 0"
-              class="text-rose-600 font-bold"
+              class="text-rose-600 font-bold whitespace-nowrap"
             >
-              ⏳ 建議再休 {{ activeMuscleDetail.hours_until_recovered }}h (週期 {{ activeMuscleDetail.target_recovery_hours || 48 }}h)
+              ⏳ 建議再休 {{ activeMuscleDetail.hours_until_recovered }}h
             </span>
-            <span v-else class="text-emerald-700 font-bold">
-              ✅ 已達超補償巔峰，可安排訓練！
+            <span v-else class="text-emerald-700 font-bold whitespace-nowrap">
+              ✅ 已達超補償巔峰，可安排訓練
             </span>
           </div>
         </div>
@@ -323,12 +322,12 @@
           v-if="canRecommendSplit(activeMuscleDetail.muscle_group)"
           type="button"
           @click="$emit('recommend-split', activeMuscleDetail.muscle_group)"
-          class="px-3 py-2 rounded-xl text-[11px] font-black whitespace-nowrap flex-shrink-0 transition-all active:scale-95 shadow-sm"
+          class="px-3 py-2 rounded-xl text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-sm"
           :class="activeMuscleDetail.status === 'FATIGUED'
             ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
             : 'bg-emerald-600 hover:bg-emerald-700 text-white'"
         >
-          {{ activeMuscleDetail.status === 'FATIGUED' ? '⚠️ 輕量恢復排課' : '⚡ 排練此部位' }}
+          {{ activeMuscleDetail.status === 'FATIGUED' ? '輕量恢復排課' : '排練此部位' }}
         </button>
       </div>
     </div>
@@ -396,10 +395,10 @@ const currentAura = computed(() => AURA_MODES[currentAuraIndex.value])
 const currentAuraBadgeText = computed(() => {
   const m = currentAura.value
   const streak = props.streakDays || 0
-  if (m.key === 'LV3') return `⚡ ${streak > 0 ? streak + '天連勝 · ' : ''}極意神境`
-  if (m.key === 'LV2') return `🔥 ${streak > 0 ? streak + '天連勝 · ' : ''}超級賽亞人`
-  if (m.key === 'LV1') return `✨ ${streak > 0 ? streak + '天打卡 · ' : ''}晨曦微光`
-  if (m.key === 'SLOTH') return '💤 偷懶中 · 光環熄滅'
+  if (m.key === 'LV3') return `⚡ ${streak > 0 ? streak + '天 · ' : ''}極意神境`
+  if (m.key === 'LV2') return `🔥 ${streak > 0 ? streak + '天 · ' : ''}超級賽亞人`
+  if (m.key === 'LV1') return `✨ ${streak > 0 ? streak + '天 · ' : ''}晨曦微光`
+  if (m.key === 'SLOTH') return '💤 偷懶瞌睡模式'
   return '⚪ 純淨無光環'
 })
 

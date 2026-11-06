@@ -76,13 +76,13 @@
               <div
                 v-for="(ex, i) in msg.suggested_routine.exercises"
                 :key="i"
-                class="text-[11px] bg-white p-2 rounded-lg border border-emerald-100 flex items-center justify-between"
+                class="text-[11px] bg-white p-2 rounded-lg border border-emerald-100 flex items-center justify-between gap-2"
               >
-                <div>
+                <div class="min-w-0 flex-1 truncate">
                   <span class="font-bold text-slate-900">{{ i + 1 }}. {{ ex.exercise_name }}</span>
-                  <span class="text-[10px] text-slate-400 ml-1">({{ ex.target_sets }}組 × {{ ex.target_reps }}次)</span>
+                  <span class="text-[10px] text-slate-400 ml-1 whitespace-nowrap">({{ ex.target_sets }}組 × {{ ex.target_reps }}次)</span>
                 </div>
-                <span class="badge-emerald text-[9px]">{{ ex.target_muscle_group }}</span>
+                <span class="badge-emerald text-[9px] whitespace-nowrap shrink-0">{{ ex.target_muscle_group }}</span>
               </div>
             </div>
 

@@ -14,15 +14,15 @@
     </div>
 
     <!-- Calories Hero Progress -->
-    <div class="p-3.5 rounded-2xl bg-gradient-to-r from-orange-50/60 to-amber-50/60 border border-orange-100/80 mb-3.5 flex items-center justify-between">
-      <div>
-        <div class="text-[11px] font-semibold text-orange-900/80 mb-0.5">今日熱量攝取</div>
-        <div class="flex items-baseline gap-1.5">
+    <div class="p-3.5 rounded-2xl bg-gradient-to-r from-orange-50/60 to-amber-50/60 border border-orange-100/80 mb-3.5 flex items-center justify-between gap-2">
+      <div class="min-w-0">
+        <div class="text-[11px] font-semibold text-orange-900/80 mb-0.5 whitespace-nowrap">今日熱量攝取</div>
+        <div class="flex items-baseline gap-1 whitespace-nowrap">
           <span class="text-2xl font-black text-slate-900">{{ progress?.consumed_calories || 0 }}</span>
           <span class="text-xs text-slate-500 font-medium">/ {{ progress?.target_calories || 2400 }} kcal</span>
         </div>
       </div>
-      <div class="text-right">
+      <div class="text-right shrink-0 whitespace-nowrap">
         <div class="text-[11px] font-semibold text-slate-500 mb-0.5">剩餘額度</div>
         <div
           class="text-lg font-extrabold"
@@ -37,8 +37,8 @@
     <div class="grid grid-cols-3 gap-2 text-center">
       <!-- Protein -->
       <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
-        <div class="text-[10px] font-bold text-slate-500 mb-1">蛋白質 (P)</div>
-        <div class="text-xs font-black text-emerald-700 mb-1">
+        <div class="text-[10px] font-bold text-slate-500 mb-1 whitespace-nowrap">蛋白質 (P)</div>
+        <div class="text-xs font-black text-emerald-700 mb-1 whitespace-nowrap">
           {{ progress?.consumed_protein_g || 0 }} <span class="text-[10px] font-normal text-slate-400">/ {{ progress?.target_protein_g || 140 }}g</span>
         </div>
         <div class="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
@@ -51,8 +51,8 @@
 
       <!-- Carbs -->
       <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
-        <div class="text-[10px] font-bold text-slate-500 mb-1">碳水 (C)</div>
-        <div class="text-xs font-black text-blue-700 mb-1">
+        <div class="text-[10px] font-bold text-slate-500 mb-1 whitespace-nowrap">碳水 (C)</div>
+        <div class="text-xs font-black text-blue-700 mb-1 whitespace-nowrap">
           {{ progress?.consumed_carbs_g || 0 }} <span class="text-[10px] font-normal text-slate-400">/ {{ progress?.target_carbs_g || 280 }}g</span>
         </div>
         <div class="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
@@ -65,8 +65,8 @@
 
       <!-- Fat -->
       <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
-        <div class="text-[10px] font-bold text-slate-500 mb-1">脂肪 (F)</div>
-        <div class="text-xs font-black text-amber-700 mb-1">
+        <div class="text-[10px] font-bold text-slate-500 mb-1 whitespace-nowrap">脂肪 (F)</div>
+        <div class="text-xs font-black text-amber-700 mb-1 whitespace-nowrap">
           {{ progress?.consumed_fat_g || 0 }} <span class="text-[10px] font-normal text-slate-400">/ {{ progress?.target_fat_g || 65 }}g</span>
         </div>
         <div class="w-full h-1 bg-slate-200 rounded-full overflow-hidden">

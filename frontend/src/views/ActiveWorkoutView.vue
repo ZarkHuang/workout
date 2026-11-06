@@ -92,21 +92,21 @@
       </div>
 
       <!-- Live Summary Metric Counters -->
-      <div class="flex items-center justify-between pt-1 border-t border-slate-700/60 text-xs">
-        <div class="flex items-center gap-1.5">
-          <span class="text-slate-400 text-[11px]">累積總容量:</span>
-          <span class="font-black text-emerald-400 text-sm">{{ currentTotalVolume }} kg</span>
+      <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-700/60 text-xs">
+        <div class="flex items-center gap-1 whitespace-nowrap shrink-0">
+          <span class="text-slate-400 text-[11px]">總容量:</span>
+          <span class="font-black text-emerald-400 text-sm whitespace-nowrap">{{ currentTotalVolume }} kg</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <button
             type="button"
             @click="showLive3DHotspot = !showLive3DHotspot"
-            class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all border"
+            class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all border whitespace-nowrap shrink-0"
             :class="showLive3DHotspot ? 'bg-rose-500 text-white border-rose-400 shadow-xs' : 'bg-slate-800 text-rose-300 border-rose-500/40 hover:bg-slate-700'"
           >
-            {{ showLive3DHotspot ? '🎭 收合 3D 熱點' : '🔥 3D 訓練部位熱點' }}
+            {{ showLive3DHotspot ? '收合 3D 熱點' : '3D 部位熱點' }}
           </button>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 whitespace-nowrap shrink-0">
             <span class="text-slate-400 text-[11px]">進度:</span>
             <span class="font-bold text-white text-xs">{{ completedSetsCount }}/{{ totalSetsCount }}組</span>
           </div>
@@ -143,47 +143,47 @@
         class="card-apple space-y-3 relative overflow-hidden"
       >
         <!-- Exercise Header & Per-Exercise Stopwatch -->
-        <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center">
+        <div class="flex items-start justify-between gap-2 pb-2 border-b border-slate-100">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center shrink-0">
                 {{ exIdx + 1 }}
               </span>
-              <h3 class="text-sm font-black text-slate-900">{{ ex.name }}</h3>
-              <span class="badge-emerald text-[10px]">{{ ex.target_muscle_group }}</span>
+              <h3 class="text-sm font-black text-slate-900 truncate">{{ ex.name }}</h3>
+              <span class="badge-emerald text-[10px] whitespace-nowrap shrink-0">{{ ex.target_muscle_group }}</span>
             </div>
 
             <!-- Single Exercise Stopwatch & Quick Action Controls -->
             <div class="flex flex-wrap items-center gap-1.5 mt-2">
               <button
                 @click="handleToggleExerciseTimer(exIdx)"
-                class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all whitespace-nowrap shrink-0"
                 :class="ex.timerStatus === 'RUNNING' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
               >
-                <component :is="ex.timerStatus === 'RUNNING' ? Pause : Play" class="w-3.5 h-3.5" />
+                <component :is="ex.timerStatus === 'RUNNING' ? Pause : Play" class="w-3.5 h-3.5 shrink-0" />
                 <span>{{ ex.timerStatus === 'RUNNING' ? '暫停單項' : (ex.elapsedSeconds > 0 ? '繼續單項' : '單項計時') }}</span>
               </button>
-              <span v-if="ex.elapsedSeconds > 0" class="text-xs font-mono font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
-                ⏱️ {{ formatSeconds(ex.elapsedSeconds) }}
+              <span v-if="ex.elapsedSeconds > 0" class="text-xs font-mono font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 whitespace-nowrap shrink-0">
+                {{ formatSeconds(ex.elapsedSeconds) }}
               </span>
               <button
                 v-if="ex.elapsedSeconds > 0"
                 @click="workoutStore.resetExerciseTimer(exIdx)"
-                class="text-[10px] text-slate-400 hover:text-slate-600 underline"
+                class="text-[10px] text-slate-400 hover:text-slate-600 underline whitespace-nowrap shrink-0"
               >
                 重設
               </button>
               <button
                 @click="openReplaceExerciseModal(exIdx, ex)"
-                class="px-2 py-1 rounded-lg text-[11px] font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200/70 transition-colors"
+                class="px-2 py-1 rounded-lg text-[11px] font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200/70 transition-colors whitespace-nowrap shrink-0"
                 title="器材被佔用？點擊替換成同部位其他動作"
               >
-                🔄 換動作
+                換動作
               </button>
             </div>
           </div>
 
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-0.5 shrink-0">
             <button
               v-if="exIdx > 0"
               @click="workoutStore.moveExercise(exIdx, -1)"
@@ -554,7 +554,7 @@ import confetti from 'canvas-confetti'
 import {
   Flame, Dumbbell, Trash2, Lightbulb, Plus, X, Check, Trophy, Play, Pause, Calendar
 } from 'lucide-vue-next'
-import { useWorkoutStore, matchOrCreateExercise, normalizeExerciseName, isSetEffective } from '@/stores/workout'
+import { useWorkoutStore, matchOrCreateExercise, normalizeExerciseName, normalizeMuscleGroupCode, isSetEffective } from '@/stores/workout'
 import { exercisesAPI } from '@/api/client'
 import MuscleAvatar3D from '@/components/MuscleAvatar3D.vue'
 import { playHighFiveSound, speakCheer, triggerVibration } from '@/utils/notifications'
@@ -793,7 +793,7 @@ async function fetchExerciseLibrary() {
 async function createAndAddCustomExercise() {
   const customName = exerciseSearch.value.trim()
   if (!customName) return
-  const mg = modalMuscleFilter.value === 'ALL' ? 'CHEST' : modalMuscleFilter.value
+  const mg = modalMuscleFilter.value === 'ALL' ? normalizeMuscleGroupCode('', customName) : modalMuscleFilter.value
   const created = await matchOrCreateExercise(customName, mg, exerciseLibrary.value)
   selectExerciseToAdd(created)
 }

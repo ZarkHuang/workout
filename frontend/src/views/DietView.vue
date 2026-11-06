@@ -1,16 +1,16 @@
 <template>
   <div class="pb-24 pt-4 px-4 max-w-lg mx-auto space-y-4">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-black text-slate-900">飲食與營養記錄</h1>
-        <p class="text-xs text-slate-400">純文字 AI 秒級解析 · 30天滾動省空間</p>
+    <div class="flex items-center justify-between gap-2">
+      <div class="min-w-0">
+        <h1 class="text-xl font-black text-slate-900 whitespace-nowrap">飲食與營養記錄</h1>
+        <p class="text-xs text-slate-400 truncate">純文字 AI 秒級解析 · 30天滾動省空間</p>
       </div>
       <button
         @click="openAIParsingModal('LUNCH')"
-        class="py-2 px-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+        class="py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
       >
-        <Sparkles class="w-4 h-4" />
+        <Sparkles class="w-4 h-4 shrink-0" />
         <span>AI 文字記飲食</span>
       </button>
     </div>
@@ -33,21 +33,21 @@
     <NutritionRingCard :progress="nutritionStore.dailyProgress" />
 
     <!-- Weight Quick Card -->
-    <div class="card-apple flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+    <div class="card-apple flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
           <Scale class="w-4 h-4" />
         </div>
-        <div>
-          <div class="text-xs font-bold text-slate-800">今日體重記錄</div>
-          <div class="text-[10px] text-slate-400">
+        <div class="min-w-0">
+          <div class="text-xs font-bold text-slate-800 whitespace-nowrap">今日體重記錄</div>
+          <div class="text-[10px] text-slate-400 whitespace-nowrap truncate">
             目前：{{ authStore.profile?.current_weight_kg || '--' }} kg (目標 {{ authStore.profile?.target_weight_kg || '--' }} kg)
           </div>
         </div>
       </div>
       <button
         @click="openWeightModal"
-        class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95"
+        class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 whitespace-nowrap shrink-0"
       >
         打卡體重
       </button>
@@ -84,20 +84,20 @@
           <div
             v-for="m in getMealsByCategory(cat.key)"
             :key="m.id"
-            class="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between"
+            class="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2"
           >
-            <div>
-              <div class="text-xs font-bold text-slate-800">{{ m.food_name }}</div>
-              <div class="text-[10px] text-slate-400">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-bold text-slate-800 truncate">{{ m.food_name }}</div>
+              <div class="text-[10px] text-slate-400 whitespace-nowrap">
                 P: {{ m.protein_g }}g · C: {{ m.carbs_g }}g · F: {{ m.fat_g }}g
               </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-black text-slate-800">{{ m.calories }} kcal</span>
-              <button @click="openEditMealModal(m)" class="text-slate-400 hover:text-brand-600 p-1 text-[11px] font-bold">
+            <div class="flex items-center gap-1 shrink-0 whitespace-nowrap">
+              <span class="text-xs font-black text-slate-800 whitespace-nowrap">{{ m.calories }} kcal</span>
+              <button @click="openEditMealModal(m)" class="text-slate-400 hover:text-brand-600 p-1 text-[11px] font-bold whitespace-nowrap shrink-0">
                 編輯
               </button>
-              <button @click="deleteMeal(m.id)" class="text-slate-300 hover:text-rose-500 p-1">
+              <button @click="deleteMeal(m.id)" class="text-slate-300 hover:text-rose-500 p-1 shrink-0">
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>

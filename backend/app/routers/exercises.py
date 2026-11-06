@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.workout import Exercise, WorkoutSet, WorkoutSession
 from app.schemas.workout import ExerciseCreate, ExerciseOut, PreviousSetHint
 from app.routers.auth import get_current_user
+from app.routers.workouts import infer_muscle_from_name, normalize_muscle_group
 
 router = APIRouter(prefix="/api/exercises", tags=["exercises"])
 
@@ -49,6 +50,12 @@ def create_custom_exercise(
     db: Session = Depends(get_db)
 ):
     clean_name = exercise_in.name.strip()
+    inferred_mg = infer_muscle_from_name(clean_name, fallback="")
+    raw_mg = (exercise_in.target_muscle_group or "CHEST").upper()
+    # If the movement name clearly belongs to a specific muscle group (e.g. '蝴蝶機反向飛鳥' -> SHOULDERS)
+    # and the caller sent the default 'CHEST', use the inferred muscle group!
+    final_mg = inferred_mg if (inferred_mg and raw_mg == "CHEST") else normalize_muscle_group(raw_mg, fallback=(inferred_mg or "CHEST"))
+
     existing = db.query(Exercise).filter(
         Exercise.name == clean_name,
         or_(
@@ -57,12 +64,16 @@ def create_custom_exercise(
         )
     ).first()
     if existing:
+        if existing.is_custom and inferred_mg and existing.target_muscle_group != inferred_mg:
+            existing.target_muscle_group = inferred_mg
+            db.commit()
+            db.refresh(existing)
         return existing
 
     exercise = Exercise(
         name=clean_name,
         name_en=exercise_in.name_en,
-        target_muscle_group=(exercise_in.target_muscle_group or "CHEST").upper(),
+        target_muscle_group=final_mg,
         secondary_muscle_group=exercise_in.secondary_muscle_group,
         equipment=exercise_in.equipment.upper() if exercise_in.equipment else "BARBELL",
         instructions=exercise_in.instructions,

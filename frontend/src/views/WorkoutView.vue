@@ -85,25 +85,25 @@
         :key="r.id"
         class="card-apple space-y-3"
       >
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-sm font-bold text-slate-900">{{ r.title }}</h3>
-              <span class="badge-emerald text-[10px]">{{ r.target_split }}</span>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h3 class="text-sm font-bold text-slate-900 truncate">{{ r.title }}</h3>
+              <span class="badge-emerald text-[10px] whitespace-nowrap shrink-0">{{ r.target_split }}</span>
             </div>
-            <p v-if="r.description" class="text-xs text-slate-500 mt-0.5">{{ r.description }}</p>
+            <p v-if="r.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ r.description }}</p>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 shrink-0 whitespace-nowrap">
             <button
               @click="openEditRoutineModal(r)"
-              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold whitespace-nowrap"
               title="編輯課表"
             >
               編輯
             </button>
             <button
               @click="deleteRoutine(r.id)"
-              class="text-slate-300 hover:text-rose-500 p-1"
+              class="text-slate-300 hover:text-rose-500 p-1 shrink-0"
               title="刪除課表"
             >
               <Trash2 class="w-4 h-4" />
@@ -116,10 +116,10 @@
           <div
             v-for="(re, idx) in r.exercises"
             :key="re.id"
-            class="text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-lg"
+            class="text-xs text-slate-600 flex items-center justify-between gap-2 bg-slate-50 px-2.5 py-1.5 rounded-lg"
           >
-            <span>{{ idx + 1 }}. {{ re.exercise?.name || '動作' }}</span>
-            <span class="text-[10px] font-bold text-slate-400">{{ re.target_sets }} 組 × {{ re.target_reps }} 次</span>
+            <span class="truncate min-w-0 flex-1">{{ idx + 1 }}. {{ re.exercise?.name || '動作' }}</span>
+            <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap shrink-0">{{ re.target_sets }} 組 × {{ re.target_reps }} 次</span>
           </div>
         </div>
 
@@ -262,26 +262,26 @@
         :key="s.id"
         class="card-apple space-y-2.5"
       >
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="text-xs font-bold text-slate-900">{{ s.session_name }}</h3>
-            <div class="text-[10px] text-slate-400">{{ formatFullDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <h3 class="text-xs font-bold text-slate-900 truncate">{{ s.session_name }}</h3>
+            <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ formatFullDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="text-right">
-              <div class="text-xs font-black text-brand-700">總容量 {{ s.total_volume_kg }} kg</div>
-              <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+          <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+            <div class="text-right whitespace-nowrap">
+              <div class="text-xs font-black text-brand-700 whitespace-nowrap">總容量 {{ s.total_volume_kg }} kg</div>
+              <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ s.sets?.length || 0 }} 組動作</div>
             </div>
             <button
               @click="openEditSessionModal(s)"
-              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold"
+              class="text-slate-400 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 text-xs font-bold whitespace-nowrap shrink-0"
               title="編輯此筆日誌"
             >
               編輯
             </button>
             <button
               @click="handleDeleteSession(s.id)"
-              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
+              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
               title="刪除此筆日誌"
             >
               <Trash2 class="w-4 h-4" />
@@ -294,10 +294,10 @@
           <div
             v-for="(st, idx) in s.sets"
             :key="st.id"
-            class="text-[11px] text-slate-700 flex items-center justify-between border-b border-slate-200/50 pb-1 last:border-0 last:pb-0"
+            class="text-[11px] text-slate-700 flex items-center justify-between gap-2 border-b border-slate-200/50 pb-1 last:border-0 last:pb-0"
           >
-            <span>{{ st.exercise_name }} (第 {{ st.set_number }} 組)</span>
-            <span class="font-bold text-slate-900">
+            <span class="truncate min-w-0 flex-1">{{ st.exercise_name }} (第 {{ st.set_number }} 組)</span>
+            <span class="font-bold text-slate-900 whitespace-nowrap shrink-0">
               {{ st.weight_kg }}kg × {{ st.reps }}次
               <span v-if="st.estimated_1rm" class="text-[10px] text-brand-600 font-semibold ml-1">(1RM: {{ st.estimated_1rm }}kg)</span>
             </span>
@@ -308,16 +308,16 @@
         <div class="flex items-center gap-2 pt-1">
           <button
             @click="repeatHistorySession(s)"
-            class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs border border-brand-200/70 active:scale-95 transition-all flex items-center justify-center gap-1"
+            class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold text-xs border border-brand-200/70 active:scale-95 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
           >
-            <Play class="w-3.5 h-3.5" />
-            <span>🔄 再練一次此菜單 (帶入當時重量)</span>
+            <Play class="w-3.5 h-3.5 shrink-0" />
+            <span>再練一次此菜單 (帶入當時重量)</span>
           </button>
           <button
             @click="saveHistorySessionAsRoutine(s)"
-            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all whitespace-nowrap"
+            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all whitespace-nowrap shrink-0"
           >
-            📌 存為課表
+            存為課表
           </button>
         </div>
       </div>
@@ -497,8 +497,9 @@
             <label class="block text-xs font-bold text-slate-700 mb-1">動作名稱</label>
             <input
               v-model="customExForm.name"
+              @input="customExForm.target_muscle_group = normalizeMuscleGroupCode(customExForm.target_muscle_group, customExForm.name)"
               type="text"
-              placeholder="例如：史密斯分腿蹲、單臂滑輪側平舉"
+              placeholder="例如：蝴蝶機反向飛鳥、史密斯分腿蹲、單臂滑輪側平舉"
               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand-500"
             />
           </div>
@@ -664,7 +665,7 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   Plus, Dumbbell, Flame, Play, Trash2, Search, X
 } from 'lucide-vue-next'
-import { useWorkoutStore } from '@/stores/workout'
+import { useWorkoutStore, normalizeMuscleGroupCode } from '@/stores/workout'
 import { workoutsAPI, exercisesAPI } from '@/api/client'
 
 const router = useRouter()
@@ -777,6 +778,7 @@ function openEditRoutineModal(routine) {
   selectedRoutineExercises.value = (routine.exercises || []).map(re => ({
     exercise_id: re.exercise_id,
     exercise_name: re.exercise?.name || '動作',
+    target_muscle_group: re.exercise?.target_muscle_group || null,
     target_sets: re.target_sets || 3,
     target_reps: re.target_reps || 10
   }))
@@ -806,6 +808,7 @@ async function saveHistorySessionAsRoutine(session) {
       mapById[key] = {
         exercise_id: st.exercise_id,
         exercise_name: st.exercise_name,
+        target_muscle_group: st.target_muscle_group || null,
         target_sets: 0,
         target_reps: Number(st.reps) || 10
       }

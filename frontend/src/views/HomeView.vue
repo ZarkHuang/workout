@@ -1,19 +1,19 @@
 <template>
   <div class="pb-24 pt-4 px-4 max-w-lg mx-auto space-y-4">
     <!-- 1. Header Greeting Banner -->
-    <div class="flex items-center justify-between">
-      <div>
-        <div class="text-xs font-semibold text-slate-400">{{ todayFormatted }}</div>
-        <h1 class="text-xl font-black text-slate-900 flex items-center gap-1.5">
-          嗨，{{ authStore.user?.name || '健身勇士' }}
-          <span class="text-lg">👋</span>
+    <div class="flex items-center justify-between gap-2">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-semibold text-slate-400 whitespace-nowrap">{{ todayFormatted }}</div>
+        <h1 class="text-xl font-black text-slate-900 flex items-center gap-1.5 truncate">
+          <span class="truncate">嗨，{{ authStore.user?.name || '健身勇士' }}</span>
+          <span class="text-lg shrink-0">👋</span>
         </h1>
       </div>
-      <div class="flex flex-col items-end">
-        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full" :class="getGoalBadgeClass">
+      <div class="flex flex-col items-end shrink-0 whitespace-nowrap">
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap" :class="getGoalBadgeClass">
           {{ getGoalText(authStore.profile?.fitness_goal) }}
         </span>
-        <span class="text-[10px] text-slate-400 mt-0.5">體重: {{ authStore.profile?.current_weight_kg || '--' }} kg</span>
+        <span class="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">體重: {{ authStore.profile?.current_weight_kg || '--' }} kg</span>
       </div>
     </div>
 
@@ -22,17 +22,17 @@
       v-if="workoutStore.activeExercises.length > 0"
       class="p-4 rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white shadow-float space-y-3 relative overflow-hidden"
     >
-      <div class="flex items-start justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-black">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-black shrink-0">
             <Flame class="w-6 h-6 text-amber-300 animate-pulse" />
           </div>
-          <div>
-            <div class="text-[11px] font-bold text-emerald-200">🔥 今日訓練進行中 / 草稿已載入</div>
-            <h2 class="text-base font-black text-white">{{ workoutStore.sessionName }}</h2>
+          <div class="min-w-0">
+            <div class="text-[11px] font-bold text-emerald-200 whitespace-nowrap">今日訓練進行中 / 草稿已載入</div>
+            <h2 class="text-base font-black text-white truncate">{{ workoutStore.sessionName }}</h2>
           </div>
         </div>
-        <span class="text-[10px] bg-white/20 px-2.5 py-1 rounded-full font-bold text-emerald-100">
+        <span class="text-[10px] bg-white/20 px-2.5 py-1 rounded-full font-bold text-emerald-100 whitespace-nowrap shrink-0">
           {{ workoutStore.activeExercises.length }} 個動作
         </span>
       </div>
@@ -44,17 +44,17 @@
       <div class="flex items-center gap-2 pt-0.5">
         <button
           @click="$router.push('/active-workout')"
-          class="flex-1 py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-black shadow-md shadow-black/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          class="flex-1 py-3 px-4 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-black shadow-md shadow-black/10 active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
-          <Play class="w-4 h-4 text-emerald-700" />
-          <span>👉 進入訓練 / 繼續打卡</span>
+          <Play class="w-4 h-4 text-emerald-700 shrink-0" />
+          <span>進入訓練 / 繼續打卡</span>
         </button>
         <button
           @click="workoutStore.cancelWorkout()"
-          class="py-3 px-3 rounded-xl bg-white/15 hover:bg-rose-600 text-white text-xs font-bold active:scale-95 transition-all"
+          class="py-3 px-3 rounded-xl bg-white/15 hover:bg-rose-600 text-white text-xs font-bold active:scale-95 transition-all whitespace-nowrap shrink-0"
           title="放棄當前訓練並重新排課"
         >
-          放棄重新排課
+          放棄重排
         </button>
       </div>
     </div>
@@ -156,16 +156,16 @@
         <button
           @click="openAIRecommendModal()"
           :disabled="loadingAI"
-          class="flex-1 py-2.5 px-4 rounded-xl bg-white text-emerald-800 text-xs font-extrabold shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          class="flex-1 py-2.5 px-3 rounded-xl bg-white text-emerald-800 text-xs font-extrabold shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
-          <Sparkles class="w-4 h-4 text-emerald-600" :class="{ 'animate-spin': loadingAI }" />
-          <span>{{ loadingAI ? 'AI 正在規劃客製課表...' : '✨ 一鍵推薦今日客製課表' }}</span>
+          <Sparkles class="w-4 h-4 text-emerald-600 shrink-0" :class="{ 'animate-spin': loadingAI }" />
+          <span>{{ loadingAI ? 'AI 規劃課表中...' : '一鍵推薦今日客製課表' }}</span>
         </button>
         <button
           @click="startEmptyWorkout"
-          class="py-2.5 px-3 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+          class="py-2.5 px-3 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold active:scale-95 transition-all flex items-center gap-1 whitespace-nowrap shrink-0"
         >
-          <Play class="w-3.5 h-3.5" />
+          <Play class="w-3.5 h-3.5 shrink-0" />
           <span>自由記訓練</span>
         </button>
       </div>
@@ -231,27 +231,27 @@
         <div
           v-for="s in recentSessions.slice(0, 5)"
           :key="s.id"
-          class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between"
+          class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2"
         >
-          <div>
-            <div class="text-xs font-bold text-slate-800">{{ s.session_name }}</div>
-            <div class="text-[10px] text-slate-400">{{ formatDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
+          <div class="min-w-0 flex-1">
+            <div class="text-xs font-bold text-slate-800 truncate">{{ s.session_name }}</div>
+            <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ formatDate(s.created_at) }} · {{ s.duration_minutes }} 分鐘</div>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="text-right">
-              <div class="text-xs font-black text-brand-700">{{ s.total_volume_kg }} kg</div>
-              <div class="text-[10px] text-slate-400">{{ s.sets?.length || 0 }} 組動作</div>
+          <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+            <div class="text-right whitespace-nowrap">
+              <div class="text-xs font-black text-brand-700 whitespace-nowrap">{{ s.total_volume_kg }} kg</div>
+              <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ s.sets?.length || 0 }} 組動作</div>
             </div>
             <button
               @click="repeatRecentSession(s)"
-              class="text-brand-600 hover:text-brand-700 px-2 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-[10px] font-bold transition-colors"
+              class="text-brand-600 hover:text-brand-700 px-2 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-[10px] font-bold transition-colors whitespace-nowrap shrink-0"
               title="以此紀錄的動作與重量再練一次"
             >
               再練一次
             </button>
             <button
               @click="handleDeleteRecentSession(s.id)"
-              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors"
+              class="text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
               title="刪除紀錄"
             >
               <Trash2 class="w-3.5 h-3.5" />

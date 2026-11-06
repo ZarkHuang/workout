@@ -2,7 +2,12 @@ import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import { workoutsAPI, exercisesAPI } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
-import { sendRestNotification, playTimerChime, triggerVibration } from '@/utils/notifications'
+import {
+  sendRestNotification,
+  scheduleBackgroundRestAlert,
+  cancelBackgroundRestAlert,
+  hasEndTimeAlreadyNotified
+} from '@/utils/notifications'
 
 export function normalizeExerciseName(name) {
   if (!name) return ''
@@ -66,21 +71,45 @@ const EXERCISE_ALIAS_MAP = {
   '俯身划船': '槓鈴俯身划船',
   '站姿肩推': '槓鈴站姿肩推 (OHP)',
   '槓鈴肩推': '槓鈴站姿肩推 (OHP)',
+  '槓鈴推舉': '槓鈴站姿肩推 (OHP)',
+  '過頭推舉': '槓鈴站姿肩推 (OHP)',
+  '過頭肩推': '槓鈴站姿肩推 (OHP)',
+  '啞鈴肩推': '坐姿啞鈴肩推',
+  '啞鈴推舉': '坐姿啞鈴肩推',
+  '坐姿啞鈴推舉': '坐姿啞鈴肩推',
+  '站姿啞鈴推舉': '坐姿啞鈴肩推',
+  '機械肩推': '坐姿啞鈴肩推',
+  '器械肩推': '坐姿啞鈴肩推',
   '啞鈴側平舉': '站姿啞鈴側平舉',
   '側平舉': '站姿啞鈴側平舉',
   '繩索面拉': '繩索面拉 (Face Pull)',
-  '面拉': '繩索面拉 (Face Pull)'
+  '面拉': '繩索面拉 (Face Pull)',
+  '後束飛鳥': '俯身啞鈴飛鳥 (後束)',
+  '俯身飛鳥': '俯身啞鈴飛鳥 (後束)',
+  '俯身啞鈴飛鳥': '俯身啞鈴飛鳥 (後束)'
 }
 
 export function normalizeMuscleGroupCode(rawMg, itemName = '') {
+  const nameUpper = (itemName || '').toUpperCase()
   const combined = `${rawMg || ''} ${itemName || ''}`.toUpperCase()
   const exact = (rawMg || '').trim().toUpperCase()
+
+  // First check strong exercise name indicators so mislabeled fallbacks don't override obvious movement names
+  if (/LEG|QUAD|GLUTE|HAMSTRING|CALF|LOWER|腿|臀|股|膕|小腿|下肢|深蹲|硬舉|RDL|提踵|倒蹬/.test(nameUpper)) return 'LEGS'
+  if (/SHOULDER|DELT|肩|三角肌|側平舉|前平舉|平舉|面拉|後束|聳肩|阿諾|過頭|俯身飛鳥|俯身啞鈴飛鳥|反向飛鳥|反向蝴蝶|後飛鳥|直立划船|立正划船|直立提拉|外旋/.test(nameUpper)) return 'SHOULDERS'
+  if (/推舉/.test(nameUpper) && !/胸|臥|上斜|下斜|平板/.test(nameUpper)) return 'SHOULDERS'
+  if (/BACK|LAT|PULL|ROW|背|闊背|斜方|划船|引體|下拉/.test(nameUpper)) return 'BACK'
+  if (/ARM|BICEP|TRICEP|手|二頭|三頭|彎舉|下壓|臂|碎顱/.test(nameUpper)) return 'ARMS'
+  if (/CORE|ABS|核|腹|棒式|捲腹/.test(nameUpper)) return 'CORE'
+  if (/CARDIO|HIIT|有氧|心肺|燃脂|跑步|飛輪|戰繩|波比/.test(nameUpper)) return 'CARDIO'
+  if (/CHEST|PEC|胸|臥推|夾胸|伏地挺身/.test(nameUpper)) return 'CHEST'
+
   if (['CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS', 'CORE', 'CARDIO'].includes(exact)) {
     return exact
   }
   if (/LEG|QUAD|GLUTE|HAMSTRING|CALF|LOWER|腿|臀|股|膕|小腿|下肢|深蹲|硬舉|RDL|提踵|倒蹬/.test(combined)) return 'LEGS'
+  if (/SHOULDER|DELT|肩|三角肌|側平舉|前平舉|面拉|後束|聳肩|阿諾|過頭|俯身飛鳥|反向飛鳥/.test(combined)) return 'SHOULDERS'
   if (/BACK|LAT|PULL|ROW|背|闊背|斜方|划船|引體|下拉/.test(combined)) return 'BACK'
-  if (/SHOULDER|DELT|肩|三角肌|側平舉|面拉|後束/.test(combined)) return 'SHOULDERS'
   if (/ARM|BICEP|TRICEP|手|二頭|三頭|彎舉|下壓|臂/.test(combined)) return 'ARMS'
   if (/CORE|ABS|核|腹|棒式|捲腹/.test(combined)) return 'CORE'
   if (/CARDIO|HIIT|有氧|心肺|燃脂|跑步|飛輪|戰繩|波比/.test(combined)) return 'CARDIO'
@@ -94,7 +123,13 @@ export async function matchOrCreateExercise(itemName, targetMuscleGroup, allExer
   // 0. If backend already resolved and provided exercise_id, check it first
   if (knownExerciseId) {
     const byId = allExercises.find((e) => e.id === knownExerciseId)
-    if (byId && (!cleanName || byId.name === cleanName || normalizeExerciseName(byId.name) === normalizeExerciseName(cleanName))) {
+    if (
+      byId &&
+      (!cleanName ||
+        byId.name === cleanName ||
+        (normalizeExerciseName(byId.name) === normalizeExerciseName(cleanName) &&
+          (!resolvedMg || byId.target_muscle_group === resolvedMg)))
+    ) {
       return byId
     }
   }
@@ -110,15 +145,23 @@ export async function matchOrCreateExercise(itemName, targetMuscleGroup, allExer
   let match = allExercises.find(
     (e) => e.name.trim().toLowerCase() === cleanName.toLowerCase() || (aliasCanonical && e.name.trim() === aliasCanonical)
   )
-  if (match) return match
+  if (match) {
+    if (match.is_custom && resolvedMg && match.target_muscle_group !== resolvedMg) {
+      match.target_muscle_group = resolvedMg
+    }
+    return match
+  }
 
-  // 2. Normalized match (ignoring parenthetical suffixes like (RDL), (練股四頭), (OHP))
+  // 2. Normalized match (requiring same muscle group to prevent cross-muscle parenthetical collision)
   if (normTarget) {
-    match = allExercises.find((e) => normalizeExerciseName(e.name) === normTarget)
+    match = allExercises.find(
+      (e) => normalizeExerciseName(e.name) === normTarget && (!resolvedMg || e.target_muscle_group === resolvedMg)
+    )
     if (match) return match
 
-    // 3. Substring match on normalized name (at least 3 chars)
+    // 3. Substring match on normalized name (at least 3 chars AND matching muscle group)
     match = allExercises.find((e) => {
+      if (resolvedMg && e.target_muscle_group !== resolvedMg) return false
       const normEx = normalizeExerciseName(e.name)
       return normEx.length >= 3 && normTarget.length >= 3 && (normEx.includes(normTarget) || normTarget.includes(normEx))
     })
@@ -278,7 +321,7 @@ export const useWorkoutStore = defineStore('workout', () => {
         activeExercises.value.push({
           exercise_id: re.exercise_id,
           name: re.exercise?.name || '未知動作',
-          target_muscle_group: re.exercise?.target_muscle_group || 'CHEST',
+          target_muscle_group: normalizeMuscleGroupCode(re.exercise?.target_muscle_group, re.exercise?.name),
           timerStatus: 'IDLE',
           elapsedSeconds: 0,
           startTimestamp: null,
@@ -508,35 +551,56 @@ export const useWorkoutStore = defineStore('workout', () => {
   }
 
   // --- Timestamp-Based Rest Timer Controls ---
+  const restContextExName = ref('')
+  const restContextSetNum = ref(1)
+
+  function buildRestAlertMessage(exName = '', setNum = 1) {
+    const title = '休息時間結束'
+    const body = exName
+      ? `第 ${setNum + 1} 組「${exName}」準備開始訓練`
+      : '組間休息已結束，準備進行下一組動作'
+    return { title, body }
+  }
+
   function startRestTimer(seconds = 90, exName = '', setNum = 1) {
     clearInterval(timerInterval)
     const now = Date.now()
-    restTimerEndTime.value = now + seconds * 1000
+    const endMs = now + seconds * 1000
+    restTimerEndTime.value = endMs
     timerTotalSeconds.value = seconds
     timerRemainingSeconds.value = seconds
+    restContextExName.value = exName || ''
+    restContextSetNum.value = Number(setNum) || 1
     isTimerActive.value = true
 
-    localStorage.setItem('fitpulse_rest_timer_end', restTimerEndTime.value.toString())
+    localStorage.setItem('fitpulse_rest_timer_end', endMs.toString())
     localStorage.setItem('fitpulse_rest_timer_total', seconds.toString())
 
-    startRestTicker(exName, setNum)
+    const { title, body } = buildRestAlertMessage(restContextExName.value, restContextSetNum.value)
+    scheduleBackgroundRestAlert(endMs, title, body, () => {
+      syncRestTimerTick(restContextExName.value, restContextSetNum.value)
+    })
+
+    startRestTicker(restContextExName.value, restContextSetNum.value)
   }
 
   function startRestTicker(exName = '', setNum = 1) {
     clearInterval(timerInterval)
     timerInterval = setInterval(() => {
-      syncRestTimerTick(exName, setNum)
+      syncRestTimerTick(exName || restContextExName.value, setNum || restContextSetNum.value)
     }, 500)
   }
 
   function syncRestTimerTick(exName = '', setNum = 1) {
     if (!isTimerActive.value || !restTimerEndTime.value) return
     const now = Date.now()
-    const diff = Math.ceil((restTimerEndTime.value - now) / 1000)
+    const targetEnd = restTimerEndTime.value
+    const diff = Math.ceil((targetEnd - now) / 1000)
 
     if (diff > 0) {
       timerRemainingSeconds.value = diff
     } else {
+      const overdueMs = now - targetEnd
       timerRemainingSeconds.value = 0
       clearInterval(timerInterval)
       isTimerActive.value = false
@@ -544,15 +608,23 @@ export const useWorkoutStore = defineStore('workout', () => {
       localStorage.removeItem('fitpulse_rest_timer_end')
       localStorage.removeItem('fitpulse_rest_timer_total')
 
-      sendRestNotification(
-        '🔔 FitPulse 休息時間結束！',
-        exName ? `第 ${setNum + 1} 組 ${exName} 準備開練！深呼吸，保持專注 💪` : '組間休息已結束，準備進行下一組動作！💪'
-      )
+      // Only trigger foreground notification if it hasn't already fired via Service Worker
+      // AND it didn't expire a long time ago while the app was closed (> 4s overdue)
+      if (!hasEndTimeAlreadyNotified(targetEnd) && overdueMs <= 4000) {
+        const { title, body } = buildRestAlertMessage(
+          exName || restContextExName.value,
+          setNum || restContextSetNum.value
+        )
+        sendRestNotification(title, body, targetEnd)
+      } else {
+        cancelBackgroundRestAlert()
+      }
     }
   }
 
   function stopRestTimer() {
     clearInterval(timerInterval)
+    cancelBackgroundRestAlert()
     isTimerActive.value = false
     restTimerEndTime.value = null
     localStorage.removeItem('fitpulse_rest_timer_end')
@@ -569,6 +641,11 @@ export const useWorkoutStore = defineStore('workout', () => {
     timerRemainingSeconds.value += seconds
     localStorage.setItem('fitpulse_rest_timer_end', restTimerEndTime.value.toString())
     localStorage.setItem('fitpulse_rest_timer_total', timerTotalSeconds.value.toString())
+
+    const { title, body } = buildRestAlertMessage(restContextExName.value, restContextSetNum.value)
+    scheduleBackgroundRestAlert(restTimerEndTime.value, title, body, () => {
+      syncRestTimerTick(restContextExName.value, restContextSetNum.value)
+    })
   }
 
   function setDefaultRestSeconds(secs) {
@@ -627,7 +704,7 @@ export const useWorkoutStore = defineStore('workout', () => {
           allSets.push({
             exercise_id: ex.exercise_id || null,
             exercise_name: ex.name || '自訂動作',
-            target_muscle_group: ex.target_muscle_group || 'CHEST',
+            target_muscle_group: normalizeMuscleGroupCode(ex.target_muscle_group, ex.name),
             set_number: recordedSetNum,
             weight_kg: Number(s.weight_kg) || 0,
             reps: Number(s.reps) || 0,

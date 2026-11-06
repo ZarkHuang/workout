@@ -30,14 +30,14 @@
 
     <!-- 2. 1RM Strength Progression Curve Card -->
     <div class="card-apple space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
             <Flame class="w-4 h-4" />
           </div>
-          <h3 class="font-bold text-slate-800 text-sm">各部位動作 1RM 肌力進步曲線</h3>
+          <h3 class="font-bold text-slate-800 text-sm truncate">各部位動作 1RM 肌力進步曲線</h3>
         </div>
-        <span class="text-[10px] font-bold text-slate-400">共 {{ availableExerciseNames.length }} 個動作</span>
+        <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap shrink-0">共 {{ availableExerciseNames.length }} 個動作</span>
       </div>
 
       <!-- Muscle group filter tabs -->

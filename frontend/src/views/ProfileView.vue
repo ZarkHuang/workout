@@ -17,37 +17,37 @@
 
     <!-- TDEE & BMR Summary Live Banner -->
     <div class="card-apple bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-0 shadow-lg p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <Sparkles class="w-4 h-4 text-emerald-400" />
-          <span class="text-xs font-bold text-slate-300">Mifflin-St Jeor 即時代謝試算</span>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <Sparkles class="w-4 h-4 text-emerald-400 shrink-0" />
+          <span class="text-xs font-bold text-slate-300 truncate">Mifflin-St Jeor 即時代謝試算</span>
         </div>
-        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">
+        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
           {{ getGoalText(form.fitness_goal) }} · {{ form.gender === 'FEMALE' ? '女性' : '男性' }}
         </span>
       </div>
 
       <div class="grid grid-cols-2 gap-3 pt-1">
         <div class="p-2.5 rounded-xl bg-white/10">
-          <div class="text-[10px] text-slate-400">基礎代謝 (BMR)</div>
-          <div class="text-lg font-black text-white">
+          <div class="text-[10px] text-slate-400 whitespace-nowrap">基礎代謝 (BMR)</div>
+          <div class="text-lg font-black text-white whitespace-nowrap">
             {{ liveStats.bmr }} <span class="text-xs font-normal text-slate-400">kcal</span>
           </div>
         </div>
         <div class="p-2.5 rounded-xl bg-white/10">
-          <div class="text-[10px] text-slate-400">每日總消耗 (TDEE)</div>
-          <div class="text-lg font-black text-emerald-400">
+          <div class="text-[10px] text-slate-400 whitespace-nowrap">每日總消耗 (TDEE)</div>
+          <div class="text-lg font-black text-emerald-400 whitespace-nowrap">
             {{ liveStats.tdee }} <span class="text-xs font-normal text-slate-400">kcal</span>
           </div>
         </div>
       </div>
 
-      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
-        <div class="flex items-center gap-1.5">
-          <Flame class="w-4 h-4 text-amber-400" />
+      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-1.5 whitespace-nowrap">
+          <Flame class="w-4 h-4 text-amber-400 shrink-0" />
           <span class="text-slate-300">建議每日攝取熱量</span>
         </div>
-        <span class="font-black text-amber-400 text-base">{{ form.target_calories }} kcal</span>
+        <span class="font-black text-amber-400 text-base whitespace-nowrap shrink-0">{{ form.target_calories }} kcal</span>
       </div>
     </div>
 
@@ -175,24 +175,24 @@
 
       <!-- Macros Mode Selector & Targets -->
       <div class="pt-3 border-t border-slate-100 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-700">每日三大營養素目標 (Macros)</span>
-          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[10px]">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold text-slate-700 whitespace-nowrap">每日三大營養素目標</span>
+          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[10px] shrink-0 whitespace-nowrap">
             <button
               type="button"
               @click="setAutoRecalc(true)"
-              class="px-2 py-1 rounded-md font-bold transition-all"
+              class="px-2 py-1 rounded-md font-bold transition-all whitespace-nowrap"
               :class="isAutoRecalc ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'"
             >
-              ✨ 智慧自動計算
+              智慧自動計算
             </button>
             <button
               type="button"
               @click="setAutoRecalc(false)"
-              class="px-2 py-1 rounded-md font-bold transition-all"
+              class="px-2 py-1 rounded-md font-bold transition-all whitespace-nowrap"
               :class="!isAutoRecalc ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
             >
-              ✏️ 手動微調
+              手動微調
             </button>
           </div>
         </div>

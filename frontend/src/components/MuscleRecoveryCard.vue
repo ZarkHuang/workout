@@ -1,27 +1,27 @@
 <template>
   <div class="card-apple">
-    <div class="flex items-center justify-between mb-3">
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
           <Activity class="w-4 h-4" />
         </div>
-        <div>
-          <h3 class="font-bold text-slate-800 text-sm">3D 肌肉修復與訓練熱點圖</h3>
-          <p class="text-[10px] text-slate-400">即時顯示各部位充血疲勞熱點與超補償進度</p>
+        <div class="min-w-0">
+          <h3 class="font-bold text-slate-800 text-sm whitespace-nowrap truncate">3D 肌肉修復與訓練熱點圖</h3>
+          <p class="text-[10px] text-slate-400 truncate">即時顯示各部位疲勞熱點與超補償進度</p>
         </div>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1 shrink-0">
         <button
           type="button"
           @click="show3DAvatar = !show3DAvatar"
-          class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all border"
+          class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all border whitespace-nowrap shrink-0"
           :class="show3DAvatar ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'"
         >
-          {{ show3DAvatar ? '🎭 隱藏 3D 公仔' : '🎭 展開 3D 公仔' }}
+          {{ show3DAvatar ? '🎭 隱藏 3D' : '🎭 展開 3D' }}
         </button>
         <button
           @click="$emit('refresh')"
-          class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 text-xs flex items-center gap-1"
+          class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 text-xs flex items-center gap-1 shrink-0"
           title="重新整理修復狀態"
         >
           <RotateCw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
@@ -66,10 +66,10 @@
         class="p-2.5 rounded-xl border transition-all"
         :class="getMuscleCardClass(m.status)"
       >
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-bold text-slate-800">{{ getShortLabel(m.label_zh) }}</span>
+        <div class="flex items-center justify-between gap-1 mb-1.5">
+          <span class="text-xs font-bold text-slate-800 whitespace-nowrap truncate">{{ getShortLabel(m.label_zh) }}</span>
           <span
-            class="text-[10px] font-bold px-1.5 py-0.2 rounded-full"
+            class="text-[10px] font-bold px-1.5 py-0.2 rounded-full whitespace-nowrap shrink-0"
             :class="getStatusBadgeClass(m.status)"
           >
             {{ m.recovery_percentage }}%
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Info note -->
-        <div class="text-[10px] text-slate-500 flex items-center justify-between">
+        <div class="text-[10px] text-slate-500 flex items-center justify-between gap-1 whitespace-nowrap">
           <span>{{ getStatusText(m.status) }}</span>
           <span v-if="m.hours_since_last_trained !== null">{{ m.hours_since_last_trained }}h 前練</span>
           <span v-else>未紀錄</span>
@@ -95,17 +95,17 @@
         <!-- Remaining recovery countdown -->
         <div
           v-if="m.hours_until_recovered && m.hours_until_recovered > 0"
-          class="mt-1 pt-1 border-t border-slate-200/60 text-[10px] font-bold flex items-center justify-between"
+          class="mt-1 pt-1 border-t border-slate-200/60 text-[10px] font-bold flex items-center justify-between gap-1 whitespace-nowrap"
           :class="m.status === 'FATIGUED' ? 'text-rose-700' : 'text-amber-700'"
         >
-          <span>⏳ 建議再休 {{ m.hours_until_recovered }}h</span>
+          <span>⏳ 再休 {{ m.hours_until_recovered }}h</span>
           <span class="text-[9px] font-normal text-slate-400">週期 {{ m.target_recovery_hours || 48 }}h</span>
         </div>
         <div
           v-else-if="m.hours_since_last_trained !== null"
-          class="mt-1 pt-1 border-t border-emerald-200/50 text-[10px] font-semibold text-emerald-700 flex items-center justify-between"
+          class="mt-1 pt-1 border-t border-emerald-200/50 text-[10px] font-semibold text-emerald-700 flex items-center justify-between gap-1 whitespace-nowrap"
         >
-          <span>✅ 超補償完成可進攻</span>
+          <span>✅ 超補償完成</span>
           <span class="text-[9px] font-normal text-slate-400">週期 {{ m.target_recovery_hours || 48 }}h</span>
         </div>
       </div>

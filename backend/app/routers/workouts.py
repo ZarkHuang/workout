@@ -30,17 +30,17 @@ def normalize_muscle_group(raw_mg: Optional[str], fallback: str = "CHEST") -> st
         return s
     if any(k in s for k in ["LEG", "QUAD", "GLUTE", "HAMSTRING", "CALF", "LOWER", "腿", "臀", "股", "膕", "小腿", "下肢", "深蹲"]):
         return "LEGS"
+    if any(k in s for k in ["SHOULDER", "DELT", "肩", "三角肌", "側平舉", "前平舉", "面拉", "後束", "聳肩", "阿諾", "過頭", "俯身飛鳥", "反向飛鳥", "反向蝴蝶", "直立划船", "立正划船", "直立提拉", "外旋"]):
+        return "SHOULDERS"
     if any(k in s for k in ["BACK", "LAT", "PULL", "ROW", "背", "闊背", "斜方", "菱形", "拉"]):
         return "BACK"
-    if any(k in s for k in ["SHOULDER", "DELT", "肩", "三角肌"]):
-        return "SHOULDERS"
     if any(k in s for k in ["ARM", "BICEP", "TRICEP", "手", "二頭", "三頭", "臂"]):
         return "ARMS"
     if any(k in s for k in ["CORE", "ABS", "ABDOM", "核", "腹", "腰"]):
         return "CORE"
     if any(k in s for k in ["CARDIO", "HIIT", "AEROBIC", "有氧", "心肺", "燃脂"]):
         return "CARDIO"
-    if any(k in s for k in ["CHEST", "PEC", "PUSH", "胸", "推"]):
+    if any(k in s for k in ["CHEST", "PEC", "PUSH", "胸", "臥推", "夾胸", "伏地挺身"]):
         return "CHEST"
     return fallback
 
@@ -95,13 +95,24 @@ COMMON_EXERCISE_ALIASES = {
     "俯身划船": "槓鈴俯身划船",
     "站姿肩推": "槓鈴站姿肩推 (OHP)",
     "槓鈴肩推": "槓鈴站姿肩推 (OHP)",
+    "槓鈴推舉": "槓鈴站姿肩推 (OHP)",
+    "過頭推舉": "槓鈴站姿肩推 (OHP)",
+    "過頭肩推": "槓鈴站姿肩推 (OHP)",
     "啞鈴肩推": "坐姿啞鈴肩推",
+    "啞鈴推舉": "坐姿啞鈴肩推",
+    "坐姿啞鈴推舉": "坐姿啞鈴肩推",
+    "站姿啞鈴推舉": "坐姿啞鈴肩推",
+    "機械肩推": "坐姿啞鈴肩推",
+    "器械肩推": "坐姿啞鈴肩推",
     "啞鈴側平舉": "站姿啞鈴側平舉",
     "側平舉": "站姿啞鈴側平舉",
     "繩索面拉": "繩索面拉 (Face Pull)",
     "面拉": "繩索面拉 (Face Pull)",
     "後束飛鳥": "俯身啞鈴飛鳥 (後束)",
     "俯身飛鳥": "俯身啞鈴飛鳥 (後束)",
+    "俯身啞鈴飛鳥": "俯身啞鈴飛鳥 (後束)",
+    "啞鈴後束飛鳥": "俯身啞鈴飛鳥 (後束)",
+    "後束啞鈴飛鳥": "俯身啞鈴飛鳥 (後束)",
     "槓鈴二頭彎舉": "站姿槓鈴二頭彎舉",
     "槓鈴彎舉": "站姿槓鈴二頭彎舉",
     "三頭下壓": "三頭繩索高位下壓",
@@ -113,10 +124,16 @@ def infer_muscle_from_name(name: str, fallback: str = "CHEST") -> str:
         return fallback
     if any(k in name for k in ["深蹲", "分腿蹲", "腿推", "倒蹬", "腿屈伸", "腿彎舉", "勾腿", "提踵", "臀推", "硬舉", "RDL", "弓箭步", "臀", "腿"]):
         return "LEGS"
+    if any(k in name for k in [
+        "肩推", "側平舉", "前平舉", "平舉", "面拉", "後束", "聳肩", "肩", "三角肌",
+        "阿諾", "過頭", "俯身飛鳥", "俯身啞鈴飛鳥", "反向飛鳥", "反向蝴蝶", "後飛鳥",
+        "直立划船", "立正划船", "直立提拉", "外旋", "Y字"
+    ]):
+        return "SHOULDERS"
+    if "推舉" in name and not any(c in name for c in ["胸", "臥", "上斜", "下斜", "平板"]):
+        return "SHOULDERS"
     if any(k in name for k in ["引體", "下拉", "划船", "直臂下壓", "背"]):
         return "BACK"
-    if any(k in name for k in ["肩推", "側平舉", "前平舉", "面拉", "後束", "聳肩", "肩"]):
-        return "SHOULDERS"
     if any(k in name for k in ["彎舉", "三頭", "二頭", "臂屈伸", "碎顱"]):
         return "ARMS"
     if any(k in name for k in ["捲腹", "棒式", "抬腿", "核心", "腹"]):
@@ -137,20 +154,29 @@ def resolve_or_create_exercise(
     clean_name = (exercise_name or "").strip()
     norm_target = _normalize_ex_name(clean_name)
     alias_canonical = COMMON_EXERCISE_ALIASES.get(clean_name.lower()) or COMMON_EXERCISE_ALIASES.get(norm_target)
+    inferred_mg = infer_muscle_from_name(clean_name, fallback="")
+    explicit_mg = normalize_muscle_group(target_muscle_group, fallback="") if target_muscle_group else ""
+    expected_mg = inferred_mg or explicit_mg
 
     # 1. If exercise_id is provided, check if it exists and matches exercise_name (when exercise_name is given)
     ex_by_id = None
     if exercise_id:
         ex_by_id = db.query(Exercise).filter(Exercise.id == exercise_id).first()
         if ex_by_id:
+            if ex_by_id.is_custom:
+                healed_mg = infer_muscle_from_name(ex_by_id.name, fallback="")
+                if healed_mg and ex_by_id.target_muscle_group != healed_mg:
+                    ex_by_id.target_muscle_group = healed_mg
+                    db.flush()
             if not clean_name:
                 return ex_by_id
             norm_db = _normalize_ex_name(ex_by_id.name)
+            mg_ok = (not expected_mg) or (ex_by_id.target_muscle_group == expected_mg)
             if (
                 ex_by_id.name == clean_name
                 or (alias_canonical and ex_by_id.name == alias_canonical)
-                or norm_db == norm_target
-                or (len(norm_db) >= 2 and len(norm_target) >= 2 and (norm_db in norm_target or norm_target in norm_db))
+                or (norm_db == norm_target and mg_ok)
+                or (mg_ok and len(norm_db) >= 2 and len(norm_target) >= 2 and (norm_db in norm_target or norm_target in norm_db))
             ):
                 return ex_by_id
 
@@ -166,27 +192,32 @@ def resolve_or_create_exercise(
         # 2a. Exact name or alias canonical match
         for c in candidates:
             if c.name.strip().lower() == clean_name.lower():
+                if c.is_custom and expected_mg and c.target_muscle_group != expected_mg:
+                    c.target_muscle_group = expected_mg
+                    db.flush()
                 return c
             if alias_canonical and c.name.strip() == alias_canonical:
                 return c
 
-        # 2b. Normalized name match (ignoring parentheses like (RDL), (OHP), (練股四頭))
+        # 2b. Normalized name match (requiring muscle group compatibility if known)
         if norm_target:
             for c in candidates:
                 if _normalize_ex_name(c.name) == norm_target:
-                    return c
+                    if not expected_mg or c.target_muscle_group == expected_mg:
+                        return c
 
-            # 2c. Substring match on normalized name (minimum 3 chars to avoid false positives)
+            # 2c. Substring match on normalized name (minimum 3 chars AND matching muscle group to prevent cross-muscle collision)
             for c in candidates:
+                if expected_mg and c.target_muscle_group != expected_mg:
+                    continue
                 norm_c = _normalize_ex_name(c.name)
                 if len(norm_c) >= 3 and len(norm_target) >= 3:
                     if norm_c in norm_target or norm_target in norm_c:
                         return c
 
         # 3. Not found in library -> Auto-create custom exercise for this user so their exact exercise name is preserved!
-        inferred_mg = infer_muscle_from_name(clean_name, fallback="")
         muscle = normalize_muscle_group(
-            inferred_mg or target_muscle_group,
+            expected_mg,
             fallback=(ex_by_id.target_muscle_group if ex_by_id else "CHEST")
         )
         new_ex = Exercise(
@@ -237,6 +268,19 @@ def repair_corrupted_sessions(db: Session, user_id: Optional[int] = None):
     sessions = query.all()
 
     changed = False
+
+    # Step 0: Auto-heal any custom exercises whose target_muscle_group was misclassified (e.g., '蝴蝶機反向飛鳥' saved as CHEST instead of SHOULDERS)
+    custom_ex_query = db.query(Exercise).filter(Exercise.is_custom == True)
+    if user_id is not None:
+        custom_ex_query = custom_ex_query.filter(
+            or_(Exercise.created_by_user_id == user_id, Exercise.created_by_user_id == None)
+        )
+    for cex in custom_ex_query.all():
+        inferred = infer_muscle_from_name(cex.name, fallback="")
+        if inferred and cex.target_muscle_group != inferred:
+            cex.target_muscle_group = inferred
+            changed = True
+
     for sess in sessions:
         if not sess.sets:
             continue
@@ -253,10 +297,35 @@ def repair_corrupted_sessions(db: Session, user_id: Optional[int] = None):
             continue
 
         ex_names_in_sess = set(st.exercise.name for st in sess.sets if st.exercise)
-        # Check if all sets in this session were collapsed into a single wrong fallback exercise
+        # Case A: Check if any sets in a dedicated Shoulder/Back/Leg session (without Chest in title) were mis-mapped to CHEST exercises
+        has_chest_in_title = any(k in title for k in ["胸", "CHEST", "PUSH", "推日"])
+        if target_split == "SHOULDERS" and not has_chest_in_title and len(ex_names_in_sess) > 1:
+            for st in sess.sets:
+                if st.exercise and st.exercise.target_muscle_group == "CHEST":
+                    ex_n = st.exercise.name
+                    replacement_name = "坐姿啞鈴肩推"
+                    if "飛鳥" in ex_n or "夾胸" in ex_n:
+                        replacement_name = "俯身啞鈴飛鳥 (後束)"
+                    elif "槓鈴" in ex_n:
+                        replacement_name = "槓鈴站姿肩推 (OHP)"
+                    resolved = resolve_or_create_exercise(
+                        db=db,
+                        user_id=sess.user_id,
+                        exercise_id=None,
+                        exercise_name=replacement_name,
+                        target_muscle_group="SHOULDERS"
+                    )
+                    st.exercise_id = resolved.id
+                    changed = True
+
+        # Case B: Check if all sets in this session were collapsed into a single wrong fallback exercise
         if len(ex_names_in_sess) == 1:
             only_name = next(iter(ex_names_in_sess))
-            is_corrupted_bench = (only_name == "槓鈴平板臥推" and target_split != "CHEST")
+            only_ex = sess.sets[0].exercise
+            is_corrupted_bench = (
+                (only_name == "槓鈴平板臥推" or (only_ex and only_ex.target_muscle_group == "CHEST" and not has_chest_in_title))
+                and target_split != "CHEST"
+            )
             is_corrupted_split_squat = (only_name == "保加利亞分腿蹲" and len(sess.sets) > 4)
             if not (is_corrupted_bench or is_corrupted_split_squat):
                 continue
@@ -431,7 +500,8 @@ def get_sessions(
                 "rpe": st.rpe,
                 "is_completed": st.is_completed,
                 "estimated_1rm": st.estimated_1rm,
-                "exercise_name": st.exercise.name if st.exercise else "未知動作"
+                "exercise_name": st.exercise.name if st.exercise else "未知動作",
+                "target_muscle_group": st.exercise.target_muscle_group if st.exercise else "CHEST"
             })
         result.append({
             "id": s.id,
@@ -559,7 +629,8 @@ def record_session(
             "rpe": w_set.rpe,
             "is_completed": w_set.is_completed,
             "estimated_1rm": w_set.estimated_1rm,
-            "exercise_name": resolved_ex.name if resolved_ex else ""
+            "exercise_name": resolved_ex.name if resolved_ex else "",
+            "target_muscle_group": resolved_ex.target_muscle_group if resolved_ex else "CHEST"
         })
 
     db.commit()
@@ -679,7 +750,8 @@ def update_session(
             "rpe": w_set.rpe,
             "is_completed": w_set.is_completed,
             "estimated_1rm": w_set.estimated_1rm,
-            "exercise_name": resolved_ex.name if resolved_ex else ""
+            "exercise_name": resolved_ex.name if resolved_ex else "",
+            "target_muscle_group": resolved_ex.target_muscle_group if resolved_ex else "CHEST"
         })
 
     db.commit()

@@ -79,6 +79,7 @@ class SetOut(BaseModel):
     is_completed: bool
     estimated_1rm: float
     exercise_name: Optional[str] = None
+    target_muscle_group: Optional[str] = None
 
     class Config:
         from_attributes = True
